@@ -12,6 +12,18 @@ Unlike consumer monitoring software, ShadowLog is designed to **teach detection,
 
 ---
 
+## ⚠️ Disclaimer
+
+**FOR EDUCATIONAL AND AUTHORIZED USE ONLY**
+
+* Do not use on systems you do not own or have permission to monitor
+* Do not use for spying, stalking, or malicious surveillance
+* Always test in controlled environments (VMs recommended)
+
+The author is **not responsible** for misuse or legal consequences.
+
+---
+
 ## 📖 Table of Contents
 - [Features](#-features)
 - [How It Works](#-how-it-works)
@@ -139,17 +151,6 @@ DISCORD_WEBHOOK_URL = None
 
 Remote logging is **optional and disabled by default**.
 
----
-
-## ⚠️ Disclaimer
-
-**FOR EDUCATIONAL AND AUTHORIZED USE ONLY**
-
-* Do not use on systems you do not own or have permission to monitor
-* Do not use for spying, stalking, or malicious surveillance
-* Always test in controlled environments (VMs recommended)
-
-The author is **not responsible** for misuse or legal consequences.
 
 ---
 
