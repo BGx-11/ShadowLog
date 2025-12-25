@@ -78,7 +78,7 @@ This architecture mirrors real-world monitoring techniques used by both attacker
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/ShadowLog.git
+   git clone https://github.com/BGx-11/ShadowLog.git
    cd ShadowLog
    ```
 
