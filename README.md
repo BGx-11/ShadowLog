@@ -1,111 +1,135 @@
-# 🕵️ ShadowLog — Advanced Activity Monitor
+# 🕵️ ShadowLog: Advanced Activity Monitor
 
 ![Python](https://img.shields.io/badge/Python-3.x-blue?style=flat&logo=python)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Status](https://img.shields.io/badge/Status-Educational-orange)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey)
 
-**ShadowLog** is an advanced, Python-based activity monitoring tool built strictly for **educational use, cybersecurity learning, and authorized security testing**.  
-It is designed to help students and professionals understand how keystroke monitoring, context-aware logging, and controlled data exfiltration work in **Red Team and Blue Team environments**.
+**ShadowLog** is a Python-based activity monitoring tool built for **cybersecurity education and authorized security testing**.  
+It demonstrates how keystroke monitoring, contextual logging, and controlled data transmission operate in **Red Team and Blue Team scenarios**.
 
-> ⚠️ This project focuses on *awareness and defense*, not misuse.
+Unlike consumer monitoring software, ShadowLog is designed to **teach detection, analysis, and defense techniques**, not surveillance.
 
 ---
 
 ## 📖 Table of Contents
-- [Overview](#-overview)
-- [Ethical Disclaimer](#-ethical-disclaimer)
-- [Key Features](#-key-features)
+- [Features](#-features)
+- [How It Works](#-how-it-works)
 - [Installation](#-installation)
-- [Configuration](#-configuration)
 - [Usage](#-usage)
-- [Controls](#-controls)
-- [Requirements](#-requirements)
+- [Project Structure](#-project-structure)
+- [Configuration](#-configuration)
+- [Disclaimer](#-disclaimer)
 - [License](#-license)
 
 ---
 
-## 🧠 Overview
+## 🚀 Features
 
-Traditional security tools often detect threats **after damage has occurred**.  
-ShadowLog demonstrates how activity monitoring tools function internally, allowing learners to:
+- **Keystroke Capture**  
+  Logs standard and special keys (Enter, Space, Backspace, etc.).
 
-- Understand how keystrokes can be intercepted
-- Learn how attackers correlate keystrokes with active windows
-- Analyze how log rotation and data transmission work
-- Build stronger detection and prevention strategies
+- **Active Window Tracking**  
+  Records the currently focused application to provide context for each log entry.
 
-This makes ShadowLog a **learning tool**, not a weapon.
+- **Local Log Storage**  
+  Saves logs to disk with automatic file rotation for stability.
 
----
+- **Optional Remote Logging**  
+  Supports sending log batches to a Discord Webhook (disabled by default).
 
-## ⚠️ Ethical Disclaimer
-
-**THIS SOFTWARE IS FOR EDUCATIONAL AND AUTHORIZED USE ONLY.**
-
-- ❌ Do **NOT** use this tool on systems you do not own
-- ❌ Do **NOT** use without explicit written permission
-- ❌ Do **NOT** use for spying, stalking, or malicious surveillance
-
-By using this software, **you take full responsibility** for complying with all applicable laws.  
-The authors are **not liable** for misuse or legal consequences.
+- **Live Control Toggle**  
+  Instantly pause or resume logging using a configurable hotkey (`F9`).
 
 ---
 
-## 🚀 Key Features
+## 🧠 How It Works
 
-- **⌨️ Keystroke Logging**  
-  Captures standard and special keys (Enter, Backspace, Space, etc.)
+ShadowLog follows a simple monitoring pipeline:
 
-- **🖥️ Active Window Awareness**  
-  Logs the currently focused application window to provide context  
-  *(Example: `[Chrome — Gmail]`)*
+1. **Hook** – Registers a keyboard listener using system-level hooks.
+2. **Context Capture** – Retrieves the active window title during key events.
+3. **Log Management** – Writes structured logs locally with rotation support.
+4. **Transmission (Optional)** – Sends log batches to a remote endpoint if enabled.
 
-- **📂 Local File Logging**  
-  Stores logs locally with **automatic file rotation** for stability
-
-- **📡 Optional Remote Logging**  
-  Supports sending log batches to a Discord Webhook (disabled by default)
-
-- **⏯️ Live Control Toggle**  
-  Instantly pause or resume logging using a hotkey (`F9`)
+This architecture mirrors real-world monitoring techniques used by both attackers and defenders, making it valuable for **threat modeling and detection research**.
 
 ---
 
 ## 📦 Installation
 
-### 1️⃣ Clone the Repository
-```bash
-git clone https://github.com/YOUR_USERNAME/ShadowLog.git
-cd ShadowLog
-````
+### Prerequisites
+- Python 3.8+
+- `pip`
 
-### 2️⃣ Install Dependencies
+### Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/ShadowLog.git
+   cd ShadowLog
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+---
+
+## 🛠️ Usage
+
+> Administrator / root privileges may be required for full keystroke capture.
+
+**Windows**
+
+```powershell
+python shadowlog.py
+```
+
+**Linux / macOS**
 
 ```bash
-pip install -r requirements.txt
+sudo python3 shadowlog.py
 ```
 
 ---
 
-## ⚙️ Configuration (Easy Setup)
+## 🎛️ Controls
 
-Open `shadowlog.py` and scroll to the **EASY CONFIGURATION** section.
+| Action                 | Key        |
+| ---------------------- | ---------- |
+| Pause / Resume Logging | `F9`       |
+| Exit Safely            | `CTRL + C` |
 
-### 📁 Set Log Directory
+Logs are flushed and saved automatically on exit.
 
-Choose where logs will be stored locally.
+---
+
+## 📂 Project Structure
+
+```text
+ShadowLog/
+│
+├── shadowlog.py        # Main monitoring engine
+├── requirements.txt   # Python dependencies
+└── README.md          # Documentation
+```
+
+---
+
+## ⚙️ Configuration
+
+Edit `shadowlog.py` and locate the **EASY CONFIGURATION** section.
+
+### Set Log Directory
 
 ```python
 LOG_PATH = Path(r"E:\ShadowLog\Logs")
 ```
 
----
-
-### 📡 Enable Discord Logging (Optional)
-
-To enable remote logging, paste your webhook URL.
-To disable it, set the value to `None`.
+### Enable / Disable Remote Logging
 
 ```python
 DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/..."
@@ -113,61 +137,29 @@ DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/..."
 DISCORD_WEBHOOK_URL = None
 ```
 
-> 🔐 Tip: Keep webhook logging disabled during local testing.
+Remote logging is **optional and disabled by default**.
 
 ---
 
-## 🛠️ Usage
+## ⚠️ Disclaimer
 
-Run the tool using:
+**FOR EDUCATIONAL AND AUTHORIZED USE ONLY**
 
-```bash
-python shadowlog.py
-```
+* Do not use on systems you do not own or have permission to monitor
+* Do not use for spying, stalking, or malicious surveillance
+* Always test in controlled environments (VMs recommended)
 
-> On Linux/macOS, elevated permissions may be required to capture keystrokes.
-
----
-
-## 🎮 Controls
-
-| Action                | Key        |
-| --------------------- | ---------- |
-| Start / Pause Logging | `F9`       |
-| Exit Safely           | `CTRL + C` |
-
-Logs are automatically saved before exit.
-
----
-
-## 📂 Requirements
-
-* Python **3.8+**
-* `pynput`
-* `requests`
-* `psutil`
-* `pywin32` *(Windows only)*
+The author is **not responsible** for misuse or legal consequences.
 
 ---
 
 ## 📄 License
 
 This project is licensed under the **MIT License**.
-You are free to modify and learn from it — **not misuse it**.
 
 ---
 
-## 🧩 Final Note
-
-ShadowLog exists to **teach how monitoring tools work so they can be detected, mitigated, and defended against**.
-
-If you’re learning:
-
-* Cybersecurity 🛡️
-* Ethical Hacking 🧑‍💻
-* Malware Analysis 🧬
-* Blue Team Defense 🔵
-
-— this project is for you.
-
-```
+<p align="center">
+<strong>Developed by BGx (Devansh Agarwal)</strong><br>
+<em>Cybersecurity Enthusiast & Developer</em>
+</p>
