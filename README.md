@@ -80,6 +80,10 @@ go build -ldflags "-H=windowsgui -s -w" -o Uninstaller.exe uninstaller/main.go
 
 ---
 
+<div align="center">
+
 **Devansh Agarwal (BGx)**  
 *Cyber Sec Student & Student Developer*  
 [Portfolio: iambgx.in](https://iambgx.in)
+
+</div>
