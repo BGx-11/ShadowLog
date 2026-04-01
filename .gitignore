@@ -1,0 +1,15 @@
+# Binaries
+*.exe
+*.zip
+ShadowLog.exe
+Decryptor.exe
+Uninstaller.exe
+ShadowLog_Release.zip
+
+# IDEs
+.vscode/
+.idea/
+
+# Go
+vendor/
+*.log
