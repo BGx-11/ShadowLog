@@ -39,7 +39,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo [4/4] Packaging Release (ShadowLog_Release.zip)...
 if exist ShadowLog_Release.zip del ShadowLog_Release.zip
-powershell -Command "Compress-Archive -Path ShadowLog.exe, Decryptor.exe, Uninstaller.exe, README.md, config -DestinationPath ShadowLog_Release.zip"
+powershell -Command "Compress-Archive -Path ShadowLog.exe, Decryptor.exe, Uninstaller.exe, README.md -DestinationPath ShadowLog_Release.zip"
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to create ShadowLog_Release.zip
     exit /b
