@@ -14,7 +14,7 @@ if not exist main.go (
 )
 
 :: Define build flags
-set LDFLAGS=-H=windowsgui -s -w
+set LDFLAGS=-H windowsgui -s -w
 
 echo [1/3] Building Core Monitor (ShadowLog.exe)...
 go build -ldflags "%LDFLAGS%" -o ShadowLog.exe main.go
