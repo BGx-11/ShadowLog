@@ -62,14 +62,22 @@ func main() {
 		// UI Mode: First run - show setup wizard.
 		ui.ShowSetup(cfg, startLogger)
 		
+		// Immediately after setup wizard closes, re-verify installation status.
+		cfg.IsInstalled = persistence.IsInstalled()
+		if !cfg.IsInstalled {
+			// Setup was closed without completion. Exit.
+			os.Exit(0)
+		}
+
 		// Re-load config after setup to get the new fields.
 		if newCfg, err := config.LoadConfig(); err == nil {
+			newCfg.IsInstalled = true
 			cfg = newCfg
 		}
 	}
 	
-	// Start the logger in the background (if it's installed now).
-	if cfg != nil && config.GetStoragePath() != "" {
+	// Start the logger in the background ONLY if properly installed.
+	if cfg != nil && cfg.IsInstalled {
 		startLogger(cfg, nil)()
 	}
 }
