@@ -25,6 +25,12 @@ func GetStoragePath() string {
 	return filepath.Join(home, ".sys_metadata_001.dat")
 }
 
+// GetSyncPath returns the path to the hidden synchronization state file.
+func GetSyncPath() string {
+	base := GetStoragePath()
+	return base + ".sync"
+}
+
 // GetAllPreviousDataDirs returns a list of directories and files used in previous versions.
 func GetAllPreviousDataDirs() []string {
 	home, _ := os.UserHomeDir()
