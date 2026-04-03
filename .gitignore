@@ -13,3 +13,8 @@ ShadowLog_Release.zip
 # Go
 vendor/
 *.log
+
+# Discord Bot Secrets
+discord_bot/.env
+discord_bot/bot_config.json
+discord_bot/__pycache__/
