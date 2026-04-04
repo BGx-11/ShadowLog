@@ -4,6 +4,8 @@
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 ![Build](https://img.shields.io/badge/Build-Optimized-success?style=for-the-badge)
 
+**Official Website**: [shadowlog.iambgx.in](https://shadowlog.iambgx.in)
+
 Shadow Log is a high-performance, native systems monitoring framework engineered for advanced cybersecurity research and authorized security demonstrations. Built entirely in Go with zero runtime dependencies, it provides an enterprise-grade approach to discrete activity capture, low-resource processing, and dual-channel exfiltration.
 
 ---
