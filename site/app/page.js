@@ -4,6 +4,15 @@ import SetupTabs from '@/components/SetupTabs';
 import DownloadSection from '@/components/DownloadSection';
 import Footer from '@/components/Footer';
 
+function HeroBackground() {
+  return (
+    <div className="heroBackground">
+      <div className="heroOrb orbPrimary"></div>
+      <div className="heroOrb orbSecondary"></div>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <>
@@ -12,16 +21,29 @@ export default function Home() {
 
       {/* ===== HERO ===== */}
       <section className="hero" id="hero">
+        <HeroBackground />
         <div className="heroContent">
-          <p className="heroLabel">Activity Analytics Framework</p>
-          <h1><span className="highlight">Shadow Log</span></h1>
-          <p className="heroSubtitle">
+          <p className="heroLabel animateIn stagger-1">Activity Analytics Framework</p>
+          <h1 className="animateIn stagger-2"><span className="highlight">Shadow Log</span></h1>
+          <p className="heroSubtitle animateIn stagger-3">
             A high-performance, native systems monitoring framework engineered for
             authorized security research and demonstrations. Built entirely in Go
             with zero runtime dependencies.
           </p>
 
-          <div className="heroCtas">
+          <div className="heroTerminal animateIn stagger-4">
+            <div className="terminalHeader">
+              <span className="dot dotRed"></span>
+              <span className="dot dotYellow"></span>
+              <span className="dot dotGreen"></span>
+              <span className="terminalTitle">bash</span>
+            </div>
+            <pre className="terminalBody">
+              <code>$ shadowlog --listen :8080 --stealth</code>
+            </pre>
+          </div>
+
+          <div className="heroCtas animateIn stagger-5">
             <a href="#setup" className="btn btnPrimary btnLg">
               Get Started
             </a>
@@ -31,11 +53,23 @@ export default function Home() {
             </a>
           </div>
 
-          <div className="heroMeta">
-            <div className="heroMetaItem"><span>Language</span> Go</div>
-            <div className="heroMetaItem"><span>Platform</span> Windows</div>
-            <div className="heroMetaItem"><span>Dependencies</span> Zero</div>
-            <div className="heroMetaItem"><span>Encryption</span> AES-256-GCM</div>
+          <div className="heroStats animateIn stagger-6">
+            <div className="statItem">
+              <span className="statValue">&lt; 1MB</span>
+              <span className="statLabel">Binary Size</span>
+            </div>
+            <div className="statItem">
+              <span className="statValue">0</span>
+              <span className="statLabel">Dependencies</span>
+            </div>
+            <div className="statItem">
+              <span className="statValue">AES-256</span>
+              <span className="statLabel">Encryption</span>
+            </div>
+            <div className="statItem">
+              <span className="statValue">100%</span>
+              <span className="statLabel">Go Native</span>
+            </div>
           </div>
         </div>
       </section>

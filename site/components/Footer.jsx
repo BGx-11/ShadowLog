@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Footer() {
   return (
@@ -6,12 +7,12 @@ export default function Footer() {
       <div className="footerInner">
         <div className="footerTop">
           <div className="footerBrand">
-            <div className="navLogo" style={{ textDecoration: 'none', color: 'var(--text-primary)' }}>
+            <Link href="/" className="navLogo" style={{ textDecoration: 'none', color: 'var(--text-primary)' }}>
               <div className="navLogoIcon" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L15 8L8 15L1 8Z" fill="currentColor"/></svg>
+                <Image src="/logo.png" alt="ShadowLog Logo" width={24} height={24} />
               </div>
               ShadowLog
-            </div>
+            </Link>
             <p>A native systems monitoring framework for authorized cybersecurity research. Built with precision in Go.</p>
           </div>
 

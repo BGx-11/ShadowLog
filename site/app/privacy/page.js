@@ -3,9 +3,9 @@ import Footer from '@/components/Footer';
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Privacy Policy — ShadowLog',
-  description: 'Privacy Policy for the ShadowLog distribution website.',
-  robots: 'noindex',
+  title: 'Privacy Policy',
+  description: 'Privacy Policy for the ShadowLog distribution website and software.',
+  robots: 'noindex, nofollow',
 };
 
 export default function PrivacyPage() {
@@ -17,96 +17,165 @@ export default function PrivacyPage() {
         <div className="legalContainer">
           <Link href="/" className="backLink">← Back to Home</Link>
           <h1>Privacy Policy</h1>
-          <p className="legalDate">Last updated: April 4, 2026</p>
+          <p className="legalDate">Last updated: April 23, 2026</p>
 
           <h2>1. Overview</h2>
           <p>
             This Privacy Policy describes how information is handled in relation to the ShadowLog distribution website
-            (&ldquo;the Site&rdquo;) and the ShadowLog software (&ldquo;the Software&rdquo;). The Developer, Devansh Agarwal (&ldquo;BGx&rdquo;), is committed
-            to transparency about data practices.
+            (&ldquo;the Site&rdquo;) and the ShadowLog software (&ldquo;the Software&rdquo;). The Developer, Devansh Agarwal
+            (&ldquo;BGx&rdquo;, &ldquo;We&rdquo;, &ldquo;Us&rdquo;), is committed to full transparency about data practices.
+            This policy should be read in conjunction with the <Link href="/terms">Terms of Service</Link>.
           </p>
 
           <h2>2. Information Collected by the Website</h2>
           <p>
-            <strong>This website does not collect, store, or process any personal data.</strong> There are no cookies,
-            no analytics trackers, no sign-up forms, and no user accounts. The Site is a static distribution page hosted
-            on Vercel.
+            <strong>This website does not collect, store, process, or transmit any personal data.</strong> Specifically:
           </p>
+          <ul>
+            <li>No cookies are set by this website</li>
+            <li>No analytics or tracking scripts are deployed</li>
+            <li>No sign-up forms, user accounts, or login systems exist</li>
+            <li>No advertising networks or marketing pixels are present</li>
+            <li>No fingerprinting or device identification technologies are used</li>
+          </ul>
           <p>
-            Vercel, as the hosting provider, may collect standard server logs (IP address, browser user agent, request
-            timestamps) as part of its infrastructure. This data is subject to{' '}
+            The Site is a static distribution page hosted on Vercel. Vercel, as the hosting provider, may collect standard
+            server logs (IP address, browser user agent, request timestamps) as part of its infrastructure operations.
+            This data is subject to{' '}
             <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Vercel&apos;s Privacy Policy</a>{' '}
-            and is not accessed or controlled by the Developer.
+            and is not accessed, controlled, or retained by the Developer.
           </p>
 
           <h2>3. Information Collected by the Software</h2>
           <p>
-            ShadowLog is a systems monitoring tool designed for authorized research. When deployed by an authorized user,
-            the Software captures the following types of data on the host system:
+            ShadowLog is a systems monitoring tool designed exclusively for authorized security research. The Developer
+            wishes to make the following <strong>critical distinctions</strong> absolutely clear:
+          </p>
+          <p>
+            <strong>The Developer does NOT collect any data through the Software.</strong> ShadowLog contains:
+          </p>
+          <ul>
+            <li>Zero telemetry or analytics</li>
+            <li>Zero phone-home functionality</li>
+            <li>Zero remote data collection capabilities</li>
+            <li>Zero communication back to the Developer</li>
+            <li>No update mechanisms that transmit data</li>
+          </ul>
+          <p>
+            When deployed by an authorized user on systems they own or have explicit authorization to monitor,
+            the Software is capable of capturing the following types of data on the host system:
           </p>
           <ul>
             <li>Keystroke data correlated with active window titles and process metadata</li>
             <li>Screenshots of the active window triggered by keyword detection or user interaction</li>
-            <li>Encrypted local log files stored on the host machine</li>
+            <li>Encrypted local log files stored on the host machine using AES-256-GCM</li>
           </ul>
           <p>
-            <strong>This data is generated and controlled entirely by the user who deploys the Software.</strong>{' '}
-            The Developer does not receive, access, or have any visibility into data captured by deployed instances
-            of ShadowLog. The Developer has no telemetry, phone-home functionality, or remote data collection
-            capabilities embedded in the Software.
+            <strong>All data generated by the Software is created, controlled, stored, and managed entirely by the
+            user who deploys it.</strong> The Developer has absolutely no access to, visibility into, or control over
+            any data captured by any deployed instance of ShadowLog, anywhere in the world.
           </p>
 
           <h2>4. Data Exfiltration Channels</h2>
           <p>
-            The Software provides optional integrations with third-party services (Discord, Telegram) configured
-            entirely by the deploying user. Data transmitted through these channels is subject to the respective
-            privacy policies of those platforms:
+            The Software provides optional integrations with third-party messaging services (Discord and Telegram),
+            configured <strong>entirely by the deploying user</strong> using their own API keys, bot tokens, and webhook
+            URLs. The Developer:
+          </p>
+          <ul>
+            <li>Does not provide, manage, or have access to any API keys or webhook endpoints</li>
+            <li>Does not receive any data transmitted through these channels</li>
+            <li>Does not operate any servers that relay, store, or process captured data</li>
+            <li>Has no ability to intercept, view, or control data in transit</li>
+          </ul>
+          <p>
+            Data transmitted through these third-party channels is subject to the respective privacy policies of those platforms:
           </p>
           <ul>
             <li><a href="https://discord.com/privacy" target="_blank" rel="noopener noreferrer">Discord Privacy Policy</a></li>
             <li><a href="https://telegram.org/privacy" target="_blank" rel="noopener noreferrer">Telegram Privacy Policy</a></li>
           </ul>
-          <p>
-            The Developer has no access to or control over data sent through these user-configured channels.
-          </p>
 
           <h2>5. Data Security</h2>
           <p>
-            Local log backups created by the Software are encrypted using AES-256-GCM with a user-defined password.
-            The security of this data depends on the strength of the password chosen by the deploying user. The
-            Developer is not responsible for data breaches resulting from weak passwords or improper handling of
-            encrypted files.
+            Local log backups created by the Software are encrypted using AES-256-GCM authenticated encryption with a
+            user-defined master key. The security of captured data depends entirely on:
           </p>
-
-          <h2>6. Third-Party Links</h2>
+          <ul>
+            <li>The strength of the encryption password chosen by the deploying user</li>
+            <li>The security of the system on which the data is stored</li>
+            <li>The security of any third-party channels the user configures for data transmission</li>
+          </ul>
           <p>
-            This Site may contain links to external websites (GitHub, portfolio, third-party privacy policies).
-            The Developer is not responsible for the content or privacy practices of external sites. Users should
-            review the privacy policies of any linked websites independently.
+            The Developer is <strong>not responsible</strong> for data breaches, unauthorized access, or data loss resulting
+            from weak passwords, improper handling of encrypted files, misconfigured exfiltration channels, or any other
+            user error or security failure.
           </p>
 
-          <h2>7. Children&apos;s Privacy</h2>
+          <h2>6. GitHub &amp; Download</h2>
           <p>
-            This Software is not intended for use by individuals under the age of 18. The Developer does not
-            knowingly distribute software to minors.
+            The Software is distributed via GitHub Releases. Downloading the Software subjects you to{' '}
+            <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">
+              GitHub&apos;s Privacy Statement
+            </a>. The Developer does not track downloads or maintain download logs.
           </p>
 
-          <h2>8. User Responsibility</h2>
+          <h2>7. Third-Party Links</h2>
           <p>
-            Users who deploy ShadowLog are solely responsible for compliance with applicable data protection laws
-            (including GDPR, CCPA, and local equivalents) in relation to any data captured by the Software.
-            The Developer assumes no responsibility for how captured data is stored, transmitted, or used
-            by the deploying user.
+            This Site contains links to external websites (GitHub, portfolio, third-party privacy policies).
+            The Developer is not responsible for the content, privacy practices, or security of external sites.
+            Users should review the privacy policies of any linked websites independently before interacting with them.
           </p>
 
-          <h2>9. Changes to This Policy</h2>
+          <h2>8. Children&apos;s Privacy</h2>
           <p>
-            The Developer may update this Privacy Policy at any time. Changes will be reflected by an updated
-            &ldquo;Last updated&rdquo; date. Continued use of the Site or Software after changes constitutes acceptance of
-            the updated policy.
+            This Software is <strong>not intended for use by individuals under the age of 18</strong>. The Developer
+            does not knowingly distribute software to minors. If you are under 18, you must not download, install,
+            or use the Software.
           </p>
 
-          <h2>10. Contact</h2>
+          <h2>9. User Responsibility &amp; Data Protection Compliance</h2>
+          <p>
+            Users who deploy ShadowLog are <strong>solely and exclusively responsible</strong> for compliance with all
+            applicable data protection and privacy laws in relation to any data captured by the Software, including
+            but not limited to:
+          </p>
+          <ul>
+            <li>The General Data Protection Regulation (GDPR) — EU Regulation 2016/679</li>
+            <li>The California Consumer Privacy Act (CCPA) and California Privacy Rights Act (CPRA)</li>
+            <li>The Electronic Communications Privacy Act (ECPA)</li>
+            <li>India&apos;s Digital Personal Data Protection Act (DPDPA), 2023</li>
+            <li>Any equivalent federal, state, national, or international privacy legislation applicable in your jurisdiction</li>
+          </ul>
+          <p>
+            The Developer assumes <strong>no responsibility whatsoever</strong> for how captured data is stored, transmitted,
+            processed, shared, or used by the deploying user. The deploying user is the sole data controller for any
+            data generated through their use of the Software.
+          </p>
+
+          <h2>10. No Data Processor Relationship</h2>
+          <p>
+            The Developer is <strong>not a data processor</strong> under any data protection framework. No data processing
+            agreement exists or is implied between the Developer and any user of the Software. The Developer does not
+            process personal data on behalf of any user at any time.
+          </p>
+
+          <h2>11. Law Enforcement Cooperation</h2>
+          <p>
+            The Developer will cooperate fully with law enforcement authorities investigating suspected illegal use
+            of the Software, to the extent legally required and practically possible. Note that because the Developer
+            collects no user data and has no telemetry, the ability to assist in such investigations is inherently limited
+            to publicly available information.
+          </p>
+
+          <h2>12. Changes to This Policy</h2>
+          <p>
+            The Developer may update this Privacy Policy at any time without prior notice. Changes will be reflected
+            by an updated &ldquo;Last updated&rdquo; date at the top of this page. Continued use of the Site or Software
+            after changes constitutes acceptance of the updated policy.
+          </p>
+
+          <h2>13. Contact</h2>
           <p>
             For privacy-related inquiries, please reach out via the Developer&apos;s portfolio at{' '}
             <a href="https://iambgx.in" target="_blank" rel="noopener noreferrer">iambgx.in</a>.
