@@ -1,10 +1,6 @@
 # Binaries
 *.exe
 *.zip
-ShadowLog.exe
-Decryptor.exe
-Uninstaller.exe
-ShadowLog_Release.zip
 
 # IDEs
 .vscode/
@@ -12,9 +8,12 @@ ShadowLog_Release.zip
 
 # Go
 vendor/
+build/
 *.log
 
-# Discord Bot Secrets
-discord_bot/.env
-discord_bot/bot_config.json
-discord_bot/__pycache__/
+# Site
+site/node_modules/
+site/.next/
+
+# Threat analysis (local only)
+Threat/

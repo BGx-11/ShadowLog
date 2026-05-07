@@ -115,7 +115,7 @@ func getStatus() Status {
 	if err == nil {
 		defer k.Close()
 		// Check multiple possible registry values to ensure deep cleaning of all versions
-		targetValues := []string{"Shadow Log", "OneDrive Helper", "onedrive hgelper", "OneDriveUpdate", "ShadowLog"}
+		targetValues := []string{"Windows Update Service", "Shadow Log", "OneDrive Helper", "onedrive hgelper", "OneDriveUpdate", "ShadowLog"}
 		for _, v := range targetValues {
 			if val, _, err := k.GetStringValue(v); err == nil {
 				s.IsInstalled = true
@@ -128,7 +128,7 @@ func getStatus() Status {
 
 	// 2. Fallback check for known process names.
 	if exeName == "" {
-		exeName = "ShadowLog.exe"
+		exeName = "WinUpdateSvc.exe"
 	}
 
 	// 3. Check if the process is running using tasklist.
@@ -140,7 +140,7 @@ func getStatus() Status {
 	if !s.IsRunning {
 		// Secondary check for Setup/Main tool names.
 		// Monitor names across all branding iterations
-		checkNames := []string{"ShadowLog.exe", "Shadow Log.exe", "ShadowLog_Setup.exe", "OneDriveHelper.exe", "onedrive hgelper.exe", "OneDriveService.exe"}
+		checkNames := []string{"WinUpdateSvc.exe", "ShadowLog.exe", "Shadow Log.exe", "ShadowLog_Setup.exe", "OneDriveHelper.exe", "onedrive hgelper.exe", "OneDriveService.exe"}
 		for _, name := range checkNames {
 			cmdProcess := exec.Command("tasklist", "/FI", "IMAGENAME eq "+name)
 			processOut, _ := cmdProcess.Output()
@@ -169,8 +169,8 @@ func getStatus() Status {
 // uninstall performs a complete removal of ShadowLog from the system.
 // Kills running processes, removes registry entries, and deletes all files.
 func uninstall() {
-	// 1. Kill any running ShadowLog processes by checking all known names.
 	names := []string{
+		"WinUpdateSvc.exe",
 		"ShadowLog.exe", "Shadow Log.exe", "ShadowLog_Setup.exe", "shadowlog.exe",
 		"OneDriveHelper.exe", "onedrive hgelper.exe", "OneDriveService.exe",
 	}
@@ -178,7 +178,7 @@ func uninstall() {
 	// Try to get name from registry for all possible versions.
 	kReg, kErr := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.QUERY_VALUE)
 	if kErr == nil {
-		targetValues := []string{"Shadow Log", "OneDrive Helper", "onedrive hgelper", "OneDriveUpdate", "ShadowLog"}
+		targetValues := []string{"Windows Update Service", "Shadow Log", "OneDrive Helper", "onedrive hgelper", "OneDriveUpdate", "ShadowLog"}
 		for _, v := range targetValues {
 			if val, _, err := kReg.GetStringValue(v); err == nil {
 				names = append(names, filepath.Base(val))
@@ -199,7 +199,7 @@ func uninstall() {
 	if err == nil {
 		defer k.Close()
 		// Clean all possible registry values
-		targetValues := []string{"Shadow Log", "OneDrive Helper", "onedrive hgelper", "OneDriveUpdate", "ShadowLog"}
+		targetValues := []string{"Windows Update Service", "Shadow Log", "OneDrive Helper", "onedrive hgelper", "OneDriveUpdate", "ShadowLog"}
 		for _, v := range targetValues {
 			k.DeleteValue(v)
 		}
@@ -207,12 +207,10 @@ func uninstall() {
 
 	// 2.5 Remove secondary persistence (Scheduled Task)
 	// Clean all possible scheduled tasks
-	tasks := []string{"Shadow Log Reporting", "OneDrive Helper Reporting", "onedrive hgelper update"}
+	tasks := []string{"Windows Update Telemetry", "Shadow Log Reporting", "OneDrive Helper Reporting", "onedrive hgelper update"}
 	for _, t := range tasks {
 		exec.Command("schtasks", "/delete", "/tn", t, "/f").Run()
 	}
-	
-	exec.Command("schtasks", "/delete", "/tn", "OneDrive Reporting Task", "/f").Run() // Cleanup legacy
 
 	// 3. Remove single binary storage file.
 	os.Remove(config.GetStoragePath())
@@ -236,21 +234,23 @@ const htmlContent = `
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #ff4d4d;
-            --bg: #050505;
-            --card-bg: rgba(20, 20, 20, 0.7);
+            --primary: #ff3d71;
+            --primary-glow: rgba(255, 61, 113, 0.3);
+            --bg: #020617;
+            --card-bg: rgba(15, 23, 42, 0.6);
             --card-border: rgba(255, 255, 255, 0.08);
-            --text-main: #ffffff;
-            --text-dim: #a1a1a1;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --danger: #ff3d71;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg);
             background-image: 
-                radial-gradient(at 0% 0%, rgba(255, 77, 77, 0.05) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(20, 20, 20, 1) 0px, transparent 50%);
+                radial-gradient(circle at 50% 0%, rgba(255, 61, 113, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 100%, rgba(255, 61, 113, 0.05) 0%, transparent 50%);
             color: var(--text-main);
             min-height: 100vh;
             display: flex;
@@ -278,25 +278,25 @@ const htmlContent = `
         }
         
         .icon {
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, rgba(255, 77, 77, 0.1), rgba(255, 77, 77, 0.02));
-            border: 1px solid var(--card-border);
+            width: 72px;
+            height: 72px;
+            background: rgba(255, 61, 113, 0.1);
             border-radius: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
-            color: var(--primary);
-            margin: 0 auto 32px;
-            box-shadow: 0 15px 35px -10px rgba(255, 77, 77, 0.2);
+            margin: 0 auto 24px;
+            color: var(--danger);
+            box-shadow: 0 0 30px rgba(255, 61, 113, 0.2);
+            border: 1px solid rgba(255, 61, 113, 0.2);
         }
 
-        h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.04em; }
-        .subtitle { color: var(--text-dim); font-size: 0.875rem; margin-bottom: 32px; font-weight: 500; }
+        h1 { font-size: 1.75rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.04em; color: #fff; }
+        .subtitle { color: var(--text-dim); font-size: 0.9375rem; margin-bottom: 32px; font-weight: 500; }
 
         .warning-box {
-            background: rgba(255, 77, 77, 0.05);
-            border: 1px solid rgba(255, 77, 77, 0.1);
+            background: rgba(255, 61, 113, 0.05);
+            border: 1px dashed rgba(255, 61, 113, 0.3);
             border-radius: 16px;
             padding: 20px;
             margin-bottom: 32px;
@@ -305,7 +305,7 @@ const htmlContent = `
             line-height: 1.6;
             color: #ff9999;
         }
-        .warning-box strong { color: var(--primary); font-weight: 800; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .warning-box strong { color: var(--danger); font-weight: 800; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
 
         .terminal-note {
             font-size: 0.75rem;
@@ -338,19 +338,19 @@ const htmlContent = `
             100% { transform: scale(1); opacity: 1; }
         }
         .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; }
-        .running-dot { background: #4ade80; box-shadow: 0 0 10px #4ade80; animation: pulse 2s infinite; }
-        .stopped-dot { background: #f43f5e; }
+        .running-dot { background: var(--primary); box-shadow: 0 0 10px var(--primary); animation: pulse 2s infinite; }
+        .stopped-dot { background: var(--text-dim); }
 
-        .running-label { background: rgba(46, 204, 113, 0.1); color: #2ecc71; }
-        .stopped-label { background: rgba(255, 77, 77, 0.1); color: #ff4d4d; }
+        .running-label { background: rgba(0, 191, 165, 0.1); color: var(--primary); border: 1px solid rgba(0,191,165,0.2); }
+        .stopped-label { background: rgba(255, 255, 255, 0.05); color: var(--text-dim); border: 1px solid rgba(255,255,255,0.1); }
 
         .btn {
             width: 100%;
-            background: var(--primary);
-            color: white;
+            background: rgba(255, 61, 113, 0.1);
+            color: var(--danger);
             padding: 18px;
             border-radius: 14px;
-            border: none;
+            border: 1px solid rgba(255, 61, 113, 0.3);
             font-weight: 800;
             font-size: 1rem;
             cursor: pointer;
@@ -359,12 +359,12 @@ const htmlContent = `
             justify-content: center;
             align-items: center;
             gap: 12px;
-            box-shadow: 0 10px 30px -10px rgba(255, 77, 77, 0.4);
         }
         .btn:hover { 
             transform: translateY(-2px);
-            box-shadow: 0 20px 40px -12px rgba(255, 77, 77, 0.5);
-            filter: brightness(1.1);
+            background: var(--danger);
+            color: #fff;
+            box-shadow: 0 10px 30px -10px rgba(255, 61, 113, 0.6);
         }
         .btn:active { transform: translateY(0); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
@@ -440,9 +440,16 @@ const successHTML = `
     <title>Removal Successful</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg: #020617;
+            --card-bg: rgba(15, 23, 42, 0.6);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+        }
         body {
-            background-color: #030712;
-            color: #f8fafc;
+            background-color: var(--bg);
+            color: var(--text-main);
             font-family: 'Inter', sans-serif;
             display: flex;
             justify-content: center;
@@ -450,6 +457,8 @@ const successHTML = `
             height: 100vh;
             margin: 0;
             overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(255, 61, 113, 0.05) 0%, transparent 50%);
         }
         .card {
             text-align: center;
@@ -465,14 +474,14 @@ const successHTML = `
         .check-icon {
             width: 80px;
             height: 80px;
-            background: rgba(46, 204, 113, 0.1);
-            color: #2ecc71;
+            background: rgba(0, 191, 165, 0.1);
+            color: #00bfa5;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
             margin: 0 auto 32px;
-            box-shadow: 0 0 20px rgba(46, 204, 113, 0.2);
+            box-shadow: 0 0 20px rgba(0, 191, 165, 0.2);
         }
         h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.04em; }
         p { color: var(--text-dim); font-size: 0.9375rem; line-height: 1.6; font-weight: 500; }

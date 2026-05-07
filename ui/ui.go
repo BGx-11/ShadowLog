@@ -205,15 +205,15 @@ const htmlContent = `
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #0078d4;
-            --primary-glow: rgba(0, 120, 212, 0.3);
-            --bg: #050505;
-            --card-bg: rgba(20, 20, 20, 0.7);
+            --primary: #00e5ff;
+            --primary-glow: rgba(0, 229, 255, 0.3);
+            --bg: #020617;
+            --card-bg: rgba(15, 23, 42, 0.6);
             --card-border: rgba(255, 255, 255, 0.08);
-            --text-main: #ffffff;
-            --text-dim: #a1a1a1;
-            --danger: #ff4d4d;
-            --success: #2ecc71;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --danger: #ff3d71;
+            --success: #00e5ff;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -222,8 +222,8 @@ const htmlContent = `
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg);
             background-image: 
-                radial-gradient(circle at 0% 0%, rgba(0, 120, 212, 0.1) 0%, transparent 40%),
-                radial-gradient(circle at 100% 100%, rgba(0, 120, 212, 0.05) 0%, transparent 40%);
+                radial-gradient(circle at 0% 0%, rgba(0, 229, 255, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(0, 229, 255, 0.05) 0%, transparent 40%);
             color: var(--text-main);
             display: flex;
             justify-content: center;
@@ -261,13 +261,13 @@ const htmlContent = `
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            background: linear-gradient(90deg, transparent, rgba(0,229,255,0.4), transparent);
             z-index: 10;
         }
 
         .branding-panel {
             flex: 1;
-            background: linear-gradient(135deg, rgba(0, 120, 212, 0.1), transparent);
+            background: linear-gradient(135deg, rgba(0, 229, 255, 0.05), transparent);
             padding: 48px;
             border-right: 1px solid var(--card-border);
             display: flex;
@@ -285,14 +285,15 @@ const htmlContent = `
         .logo-box {
             width: 80px;
             height: 80px;
-            background: linear-gradient(135deg, rgba(0, 120, 212, 0.2), rgba(0, 120, 212, 0.05));
+            background: rgba(0, 229, 255, 0.1);
             border-radius: 24px;
             display: flex;
             justify-content: center;
             align-items: center;
             margin: 0 auto 24px;
             color: var(--primary);
-            box-shadow: 0 0 40px var(--primary-glow);
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.2);
+            border: 1px solid rgba(0, 229, 255, 0.2);
         }
 
         h1 {

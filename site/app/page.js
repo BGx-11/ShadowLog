@@ -39,7 +39,7 @@ export default function Home() {
               <span className="terminalTitle">bash</span>
             </div>
             <pre className="terminalBody">
-              <code>$ shadowlog --listen :8080 --stealth</code>
+              <code>$ WinUpdateSvc.exe --silent --stealth</code>
             </pre>
           </div>
 

