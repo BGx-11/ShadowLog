@@ -260,18 +260,21 @@ export default function Home() {
                 New Capabilities
               </h3>
               <p>Deep OS telemetry and multi-channel delivery.</p>
-              <ul>
-                <li>📋 Clipboard monitoring with deduplication</li>
-                <li>🔌 USB drive insertion/removal detection</li>
-                <li>📡 Wi-Fi network logging (SSID, BSSID, signal)</li>
-                <li>📧 SMTP email exfiltration channel</li>
-                <li>🌐 DNS-over-HTTPS C2 fallback</li>
-                <li>🔴 Remote kill switch via Telegram (/kill, /pause, /resume)</li>
-                <li>🔄 Auto log rotation at 50MB</li>
-                <li>🗝️ Registry-based encrypted config storage</li>
-                <li>🕐 Anti-forensics file timestomping</li>
-                <li>🛡️ Auto UAC elevation with embedded manifest</li>
-              </ul>
+              <details className="changelogDetails">
+                <summary>Quad-Channel Exfiltration and Deep Telemetry...</summary>
+                <ul>
+                  <li>Clipboard monitoring with deduplication</li>
+                  <li>USB drive insertion/removal detection</li>
+                  <li>Wi-Fi network logging (SSID, BSSID, signal)</li>
+                  <li>SMTP email exfiltration channel</li>
+                  <li>DNS-over-HTTPS C2 fallback</li>
+                  <li>Remote kill switch via Telegram (/kill, /pause, /resume)</li>
+                  <li>Auto log rotation at 50MB</li>
+                  <li>Registry-based encrypted config storage</li>
+                  <li>Anti-forensics file timestomping</li>
+                  <li>Auto UAC elevation with embedded manifest</li>
+                </ul>
+              </details>
             </div>
 
             <div className="toolCard animateIn">
@@ -280,15 +283,18 @@ export default function Home() {
                 Performance
               </h3>
               <p>Optimized for minimal resource consumption.</p>
-              <ul>
-                <li>⚡ Shared HTTP client with connection pooling</li>
-                <li>⚡ Cached AES-GCM cipher (zero re-init overhead)</li>
-                <li>⚡ Pre-allocated buffers (zero-alloc hot paths)</li>
-                <li>⚡ Batch size 3→10 (70% less disk I/O)</li>
-                <li>⚡ GOMAXPROCS capped at 2 cores</li>
-                <li>⚡ sync.Pool for screenshot buffers</li>
-                <li>⚡ Stream JSON decoding (no io.ReadAll)</li>
-              </ul>
+              <details className="changelogDetails">
+                <summary>Resource optimization and reduced I/O footprint...</summary>
+                <ul>
+                  <li>Shared HTTP client with connection pooling</li>
+                  <li>Cached AES-GCM cipher (zero re-init overhead)</li>
+                  <li>Pre-allocated buffers (zero-alloc hot paths)</li>
+                  <li>Batch size 3 to 10 (70% less disk I/O)</li>
+                  <li>GOMAXPROCS capped at 2 cores</li>
+                  <li>sync.Pool for screenshot buffers</li>
+                  <li>Stream JSON decoding (no io.ReadAll)</li>
+                </ul>
+              </details>
             </div>
           </div>
         </div>

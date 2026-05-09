@@ -65,6 +65,9 @@ export default function SetupTabs() {
           <div className="stepContent">
             <h4>Test &amp; Deploy</h4>
             <p>Click <strong>Test Configuration</strong> to verify your setup. Then click <strong>Initialize Monitor</strong> to lock configuration and start the background service.</p>
+            <p className="stepNote" style={{ marginTop: '0.75rem', color: 'var(--text-dim)' }}>
+              <strong>Note:</strong> To defeat behavioral network scanners, the service implements a randomized <strong>60 to 180 second sleep</strong> before its first initialization. Please wait up to 3 minutes before expecting telemetry.
+            </p>
           </div>
         </div>
       </div>

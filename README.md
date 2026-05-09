@@ -139,7 +139,8 @@ During setup, you'll configure:
 
 #### Phase 3: Deployment
 1. Click **Test Configuration** to verify each channel.
-2. Click **Initialize Monitor** — the service locks configuration and runs silently.
+2. Click **Initialize Monitor** — the setup wizard will close, and the service will lock the configuration.
+   - *Note: To defeat behavioral network scanners, the service implements a randomized **60 to 180 second sleep** before its first initialization. Please wait up to 3 minutes before expecting telemetry.*
 
 ---
 
