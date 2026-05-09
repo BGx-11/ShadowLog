@@ -212,8 +212,12 @@ func uninstall() {
 		exec.Command("schtasks", "/delete", "/tn", t, "/f").Run()
 	}
 
-	// 3. Remove single binary storage file.
+	// 3. Remove single binary storage file and sync lock.
 	os.Remove(config.GetStoragePath())
+	os.Remove(config.GetSyncPath())
+
+	// 4. Remove registry-based configuration.
+	config.DeleteConfigFromRegistry()
 }
 
 // openBrowser opens the given URL in the system's default web browser.

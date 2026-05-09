@@ -1,7 +1,3 @@
-# Binaries
-*.exe
-*.zip
-
 # IDEs
 .vscode/
 .idea/

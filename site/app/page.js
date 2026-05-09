@@ -23,12 +23,12 @@ export default function Home() {
       <section className="hero" id="hero">
         <HeroBackground />
         <div className="heroContent">
-          <p className="heroLabel animateIn stagger-1">Activity Analytics Framework</p>
+          <p className="heroLabel animateIn stagger-1">Activity Analytics Framework — v2.2</p>
           <h1 className="animateIn stagger-2"><span className="highlight">Shadow Log</span></h1>
           <p className="heroSubtitle animateIn stagger-3">
             A high-performance, native systems monitoring framework engineered for
-            authorized security research and demonstrations. Built entirely in Go
-            with zero runtime dependencies.
+            authorized security research. Built entirely in Go with zero runtime dependencies,
+            featuring quad-channel exfiltration, remote C2, and deep OS telemetry.
           </p>
 
           <div className="heroTerminal animateIn stagger-4">
@@ -55,8 +55,8 @@ export default function Home() {
 
           <div className="heroStats animateIn stagger-6">
             <div className="statItem">
-              <span className="statValue">&lt; 1MB</span>
-              <span className="statLabel">Binary Size</span>
+              <span className="statValue">4</span>
+              <span className="statLabel">Exfil Channels</span>
             </div>
             <div className="statItem">
               <span className="statValue">0</span>
@@ -67,8 +67,8 @@ export default function Home() {
               <span className="statLabel">Encryption</span>
             </div>
             <div className="statItem">
-              <span className="statValue">100%</span>
-              <span className="statLabel">Go Native</span>
+              <span className="statValue">v2.2</span>
+              <span className="statLabel">Latest</span>
             </div>
           </div>
         </div>
@@ -153,9 +153,9 @@ export default function Home() {
                   <div className="bentoIconWrapper featIconPink" aria-hidden="true">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
                   </div>
-                  <h3>Dual-Stream Exfiltration</h3>
+                  <h3>Quad-Channel Exfiltration</h3>
                 </div>
-                <p>Bypasses the need for vulnerable local disk storage by safely multiplexing telemetry out to Telegram and Discord via rapid, encrypted webhook streams.</p>
+                <p>Multiplexes telemetry across Discord webhooks, Telegram Bot API, SMTP email, and DNS-over-HTTPS — ensuring delivery even when primary channels are blocked.</p>
               </div>
             </div>
 
@@ -238,6 +238,56 @@ export default function Home() {
                 <li>Unregisters Windows hook persistence routines</li>
                 <li>Removes scheduled tasks and registry entries</li>
                 <li>Purges all encrypted telemetry records from disk</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== CHANGELOG v2.2 ===== */}
+      <section className="section sectionAlt" id="changelog">
+        <div className="container">
+          <div className="sectionHeader animateIn">
+            <span className="sectionLabel">What&apos;s New</span>
+            <h2 className="sectionTitle">v2.2 Changelog</h2>
+            <p className="sectionDesc">Major feature expansion and performance overhaul.</p>
+          </div>
+
+          <div className="toolsGrid">
+            <div className="toolCard animateIn">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                New Capabilities
+              </h3>
+              <p>Deep OS telemetry and multi-channel delivery.</p>
+              <ul>
+                <li>📋 Clipboard monitoring with deduplication</li>
+                <li>🔌 USB drive insertion/removal detection</li>
+                <li>📡 Wi-Fi network logging (SSID, BSSID, signal)</li>
+                <li>📧 SMTP email exfiltration channel</li>
+                <li>🌐 DNS-over-HTTPS C2 fallback</li>
+                <li>🔴 Remote kill switch via Telegram (/kill, /pause, /resume)</li>
+                <li>🔄 Auto log rotation at 50MB</li>
+                <li>🗝️ Registry-based encrypted config storage</li>
+                <li>🕐 Anti-forensics file timestomping</li>
+                <li>🛡️ Auto UAC elevation with embedded manifest</li>
+              </ul>
+            </div>
+
+            <div className="toolCard animateIn">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                Performance
+              </h3>
+              <p>Optimized for minimal resource consumption.</p>
+              <ul>
+                <li>⚡ Shared HTTP client with connection pooling</li>
+                <li>⚡ Cached AES-GCM cipher (zero re-init overhead)</li>
+                <li>⚡ Pre-allocated buffers (zero-alloc hot paths)</li>
+                <li>⚡ Batch size 3→10 (70% less disk I/O)</li>
+                <li>⚡ GOMAXPROCS capped at 2 cores</li>
+                <li>⚡ sync.Pool for screenshot buffers</li>
+                <li>⚡ Stream JSON decoding (no io.ReadAll)</li>
               </ul>
             </div>
           </div>

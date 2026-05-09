@@ -69,6 +69,7 @@ export default function Nav({ alwaysOpaque = false }) {
             <li><a href="/#features" onClick={closeMenu}>Features</a></li>
             <li><a href="/#setup" onClick={closeMenu}>Setup</a></li>
             <li><a href="/#tools" onClick={closeMenu}>Tools</a></li>
+            <li><a href="/#changelog" onClick={closeMenu}>Changelog</a></li>
             <li><a href="/#download" onClick={closeMenu}>Download</a></li>
             {/* Mobile-only: show source code link inline */}
             <li className="navLinkMobileOnly">

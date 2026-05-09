@@ -153,6 +153,10 @@ func loadLogs(path string) []LogEntry {
 
 	var rawEntries []LogEntry
 	scanner := bufio.NewScanner(file)
+	// IMPORTANT FIX: Increase buffer size for large clipboard/encoded logs (up to 10MB per line)
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, 10*1024*1024)
+
 	firstLine := true
 	for scanner.Scan() {
 		if firstLine {

