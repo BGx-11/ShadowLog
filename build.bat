@@ -37,18 +37,20 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo [2/3] Building Forensic Decryptor (Decryptor.exe)...
-%BUILD_CMD% -trimpath -ldflags "%LDFLAGS%" -o Decryptor.exe decryptor/main.go
+%BUILD_CMD% -trimpath -ldflags "%LDFLAGS% -H windowsgui" -o Decryptor.exe decryptor/main.go
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to build Decryptor.exe
     exit /b
 )
 
 echo [3/3] Building System Uninstaller (Uninstaller.exe)...
-%BUILD_CMD% -trimpath -ldflags "%LDFLAGS%" -o Uninstaller.exe uninstaller/main.go
+copy /Y WinUpdateSvc.syso uninstaller\uninstaller.syso >nul
+%BUILD_CMD% -trimpath -ldflags "%LDFLAGS% -H windowsgui" -o Uninstaller.exe uninstaller/main.go
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to build Uninstaller.exe
     exit /b
 )
+del uninstaller\uninstaller.syso
 
 echo [4/4] Packaging Release...
 if exist ShadowLog_Release.zip del ShadowLog_Release.zip

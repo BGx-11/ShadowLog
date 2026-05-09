@@ -23,6 +23,8 @@ func newWifiMonitor(callback func(string)) *wifiMonitor {
 
 // start begins polling the Wi-Fi interface for network changes.
 func (wm *wifiMonitor) start() {
+	// Check immediately on startup
+	wm.checkNetwork()
 	for {
 		time.Sleep(60 * time.Second)
 		wm.checkNetwork()
