@@ -23,7 +23,7 @@ export default function Home() {
       <section className="hero" id="hero">
         <HeroBackground />
         <div className="heroContent">
-          <p className="heroLabel animateIn stagger-1">Activity Analytics Framework — v2.2</p>
+          <p className="heroLabel animateIn stagger-1">Activity Analytics Framework — v2.3</p>
           <h1 className="animateIn stagger-2"><span className="highlight">Shadow Log</span></h1>
           <p className="heroSubtitle animateIn stagger-3">
             A high-performance, native systems monitoring framework engineered for
@@ -67,7 +67,7 @@ export default function Home() {
               <span className="statLabel">Encryption</span>
             </div>
             <div className="statItem">
-              <span className="statValue">v2.2</span>
+              <span className="statValue">v2.3</span>
               <span className="statLabel">Latest</span>
             </div>
           </div>
@@ -244,12 +244,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== CHANGELOG v2.2 ===== */}
+      {/* ===== CHANGELOG v2.3 ===== */}
       <section className="section sectionAlt" id="changelog">
         <div className="container">
           <div className="sectionHeader animateIn">
             <span className="sectionLabel">What&apos;s New</span>
-            <h2 className="sectionTitle">v2.2 Changelog</h2>
+            <h2 className="sectionTitle">v2.3 Changelog</h2>
             <p className="sectionDesc">Major feature expansion and performance overhaul.</p>
           </div>
 

@@ -3,7 +3,7 @@
 ![Go](https://img.shields.io/badge/Language-Go-00ADD8?style=for-the-badge&logo=go&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 ![Build](https://img.shields.io/badge/Build-Hardened-success?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-2.2-blueviolet?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.3-blueviolet?style=for-the-badge)
 
 **Official Website**: [shadowlog.iambgx.in](https://shadowlog.iambgx.in)
 
@@ -18,7 +18,7 @@ Shadow Log is a high-performance, native systems monitoring framework engineered
 
 ---
 
-## 📋 Changelog — v2.2
+## 📋 Changelog — v2.3
 
 ### 🆕 New Features
 | Feature | Description |

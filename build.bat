@@ -30,14 +30,14 @@ echo.
 echo [1/3] Building Core Monitor (WinUpdateSvc.exe)...
 echo     Generating manifest resource...
 rsrc -manifest WinUpdateSvc.manifest -o WinUpdateSvc.syso
-%BUILD_CMD% -trimpath -ldflags "%LDFLAGS% -H windowsgui" -o WinUpdateSvc.exe main.go
+%BUILD_CMD% -trimpath -ldflags "%LDFLAGS% -H windowsgui" -o WinUpdateSvc.exe .
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to build WinUpdateSvc.exe
     exit /b 1
 )
 
 echo [2/3] Building Forensic Decryptor (Decryptor.exe)...
-%BUILD_CMD% -trimpath -ldflags "%LDFLAGS% -H windowsgui" -o Decryptor.exe decryptor/main.go
+%BUILD_CMD% -trimpath -ldflags "%LDFLAGS% -H windowsgui" -o Decryptor.exe ./decryptor
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to build Decryptor.exe
     exit /b
@@ -45,7 +45,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo [3/3] Building System Uninstaller (Uninstaller.exe)...
 copy /Y WinUpdateSvc.syso uninstaller\uninstaller.syso >nul
-%BUILD_CMD% -trimpath -ldflags "%LDFLAGS% -H windowsgui" -o Uninstaller.exe uninstaller/main.go
+%BUILD_CMD% -trimpath -ldflags "%LDFLAGS% -H windowsgui" -o Uninstaller.exe ./uninstaller
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to build Uninstaller.exe
     exit /b
