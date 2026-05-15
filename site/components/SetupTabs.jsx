@@ -27,7 +27,7 @@ export default function SetupTabs() {
           <div className="stepNum">01</div>
           <div className="stepContent">
             <h4>Download &amp; Extract</h4>
-            <p>Download the latest <code>ShadowLog_Release.zip</code> archive from the release section below. Extract the contents on the target Windows environment.</p>
+            <p>Download the latest <code>ShadowLog_Release_v4.0.zip</code> archive from the release section below. Extract the contents on the target Windows environment.</p>
           </div>
         </div>
 

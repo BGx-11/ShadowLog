@@ -57,7 +57,7 @@ if exist ShadowLog_Release.zip del ShadowLog_Release.zip
 if exist ShadowLog_Release_v4.0.zip del ShadowLog_Release_v4.0.zip
 powershell -Command "Compress-Archive -Path WinUpdateSvc.exe, Decryptor.exe, Uninstaller.exe, README.md -DestinationPath ShadowLog_Release_v4.0.zip"
 if %ERRORLEVEL% NEQ 0 (
-    echo Failed to create ShadowLog_Release.zip
+    echo Failed to create ShadowLog_Release_v4.0.zip
     exit /b
 )
 
