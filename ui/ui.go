@@ -528,9 +528,9 @@ const htmlContent = `
                         <label for="encryption_password">Encryption Password</label>
                         <div class="input-wrapper">
                             <input type="password" id="encryption_password" name="encryption_password" class="input-field" value="{{ .EncryptionPassword }}"
-                                     placeholder="Strong password for log encryption" required>
+                                     placeholder="Leave blank for auto-hardware lock">
                         </div>
-                        <span style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;display:block;">Used to encrypt local logs. Securely locks your forensic data.</span>
+                        <span style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;display:block;">Leave blank to bind logs uniquely to this machine's hardware ID.</span>
                     </div>
 
                     <div class="section-divider" style="border-top:1px solid rgba(255,255,255,0.06);margin:28px 0;position:relative;">
