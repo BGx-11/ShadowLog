@@ -63,13 +63,16 @@ func (ks *killSwitch) start(pauseChan chan<- bool) {
 
 	for {
 		ks.poll(pauseChan)
-		time.Sleep(30 * time.Second)
+		// Small delay to prevent tight loop if API errors occur.
+		// Long-polling handles the actual waiting.
+		time.Sleep(2 * time.Second)
 	}
 }
 
 // poll checks for new commands from the Telegram bot.
 func (ks *killSwitch) poll(pauseChan chan<- bool) {
-	url := fmt.Sprintf("https://api.telegram.org/bot%s/getUpdates?offset=%d&timeout=5",
+	// Use long-polling timeout of 30 seconds for real-time responsiveness.
+	url := fmt.Sprintf("https://api.telegram.org/bot%s/getUpdates?offset=%d&timeout=30",
 		ks.token, ks.lastMsgID+1)
 
 	client := sharedHTTPClient
@@ -105,16 +108,22 @@ func (ks *killSwitch) poll(pauseChan chan<- bool) {
 			time.Sleep(5 * time.Second)
 			ks.executeKill()
 
-		case "/pause":
+		case "/pause", "/stop":
 			ks.sendResponse("⏸️ *Monitoring Paused*\n\nSend `/resume` to continue.")
 			if pauseChan != nil {
-				pauseChan <- true
+				select {
+				case pauseChan <- true:
+				default:
+				}
 			}
 
-		case "/resume":
+		case "/resume", "/start":
 			ks.sendResponse("▶️ *Monitoring Resumed*\n\nAll hooks re-activated.")
 			if pauseChan != nil {
-				pauseChan <- false
+				select {
+				case pauseChan <- false:
+				default:
+				}
 			}
 
 		case "/status":
