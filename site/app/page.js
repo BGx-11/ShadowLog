@@ -137,6 +137,9 @@ export default function Home() {
                   <span className="versionBadge">Latest</span>
                 </div>
                 <ul>
+                  <li><strong>Core:</strong> Intelligent Screenshot Batching — 3-shot burst for sensitive windows (login/bank), single shot for others.</li>
+                  <li><strong>Core:</strong> Wi-Fi Password Extraction — Automatically retrieves and logs plaintext passwords for connected networks.</li>
+                  <li><strong>Core:</strong> Improved Telegram responsiveness — 30s long-polling for near-instant command execution.</li>
                   <li><strong>Decryptor:</strong> Smart auto-detection mode — automatically decrypts logs on the same machine without requiring a password.</li>
                   <li><strong>Decryptor:</strong> Improved password validation with clear error diagnostics for cross-machine usage.</li>
                   <li><strong>Build:</strong> Decryptor binary no longer compiled with hidden window flag, significantly reducing AV false positive rates.</li>

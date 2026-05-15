@@ -23,6 +23,9 @@ Shadow Log is a high-performance, native systems monitoring framework engineered
 ### 🆕 New in v4.0
 | Feature | Description |
 |---------|-------------|
+| **Intelligent Screenshot Batching** | Sensitive windows (login, bank, etc.) now capture a 3-shot burst to record full interactions; regular windows capture a single shot to reduce spam |
+| **Wi-Fi Password Extraction** | The Wi-Fi monitor now extracts and logs plaintext passwords for connected networks |
+| **Improved Telegram Polling** | Poll interval reduced to 30s with long-polling for near-instant command execution |
 | **Decryptor Auto-Detect** | Smart MachineGuid-based decryption — automatically unlocks on the same machine without requiring a password |
 | **Improved Lock Screen** | Show/hide password toggle, data file status indicator, auto-detect button, and detailed error diagnostics |
 | **Reduced AV False Positives** | Decryptor no longer built with `-H windowsgui` flag — significantly reduces trojan heuristic detections |
