@@ -621,7 +621,7 @@ const htmlContent = `
                             <input type="checkbox" name="kill_switch" {{ if .KillSwitchEnabled }}checked{{ end }}>
                             <div class="checkbox-label">
                                 <span class="checkbox-title">Enable Remote Kill Switch</span>
-                                <span class="checkbox-desc">Poll Telegram for /kill or /pause commands.</span>
+                                <span class="checkbox-desc">Poll Telegram for /kill, /pause, /resume, /status, or /wipe commands.</span>
                             </div>
                         </label>
                     </div>

