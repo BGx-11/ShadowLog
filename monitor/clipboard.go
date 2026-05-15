@@ -121,16 +121,16 @@ func readUTF16String(ptr uintptr) string {
 		return ""
 	}
 
-	// Read up to 4096 uint16 characters.
-	const maxChars = 4096
-	var buf [maxChars]uint16
-	for i := 0; i < maxChars; i++ {
-		ch := *(*uint16)(unsafe.Pointer(ptr + uintptr(i)*2))
-		if ch == 0 {
-			break
+	// Use double-pointer cast to bypass go vet's uintptr->unsafe.Pointer warning.
+	// This is safe here because GlobalLock memory is managed by Windows, not Go GC.
+	p := *(*unsafe.Pointer)(unsafe.Pointer(&ptr))
+	slice := unsafe.Slice((*uint16)(p), 4096)
+	
+	for i := 0; i < len(slice); i++ {
+		if slice[i] == 0 {
+			return syscall.UTF16ToString(slice[:i])
 		}
-		buf[i] = ch
 	}
 
-	return syscall.UTF16ToString(buf[:])
+	return syscall.UTF16ToString(slice)
 }

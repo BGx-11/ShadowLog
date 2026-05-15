@@ -3,7 +3,7 @@
 ![Go](https://img.shields.io/badge/Language-Go-00ADD8?style=for-the-badge&logo=go&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 ![Build](https://img.shields.io/badge/Build-Hardened-success?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-2.3-blueviolet?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-4.0-blueviolet?style=for-the-badge)
 
 **Official Website**: [shadowlog.iambgx.in](https://shadowlog.iambgx.in)
 
@@ -15,6 +15,20 @@ Shadow Log is a high-performance, native systems monitoring framework engineered
 > ### Legal and Ethical Warning
 > **FOR AUTHORIZED EDUCATIONAL AND RESEARCH USE ONLY.**
 > Unauthorized deployment of monitoring tools on systems you do not own or have explicit, documented permission to monitor is illegal and a violation of privacy laws (such as the Computer Fraud and Abuse Act). This software is provided "as-is" for security professionals and students to study low-level system hooks and secure exfiltration techniques. The developer assumes no liability for misuse, data loss, or legal consequences resulting from the use of this tool. By using this software, you agree to our official [Terms of Service](https://shadowlog.iambgx.in/terms) and [Privacy Policy](https://shadowlog.iambgx.in/privacy).
+
+---
+
+## 📋 Changelog — v4.0
+
+### 🆕 New in v4.0
+| Feature | Description |
+|---------|-------------|
+| **Decryptor Auto-Detect** | Smart MachineGuid-based decryption — automatically unlocks on the same machine without requiring a password |
+| **Improved Lock Screen** | Show/hide password toggle, data file status indicator, auto-detect button, and detailed error diagnostics |
+| **Reduced AV False Positives** | Decryptor no longer built with `-H windowsgui` flag — significantly reduces trojan heuristic detections |
+| **Better Error Messages** | Decryptor now distinguishes between wrong password, missing data file, and cross-machine scenarios |
+| **Site Troubleshooting FAQ** | Added comprehensive FAQ section covering AV exclusions, password recovery, and startup delay |
+| **Fixed Download Button** | Site download URL now correctly points to the versioned release asset |
 
 ---
 
@@ -108,7 +122,7 @@ Shadow Log employs a defense-in-depth approach to remain undetectable:
 
 ### Option 1: Quick Start (Security Analysts)
 
-Download the latest **`ShadowLog_Release.zip`** from the [Releases](https://github.com/BGx-11/ShadowLog/releases) page.
+Download the latest **`ShadowLog_Release_v4.0.zip`** from the [Releases](https://github.com/BGx-11/ShadowLog/releases) page.
 
 #### Phase 1: Installation
 1. **Extract** the archive on the target host.
@@ -181,8 +195,10 @@ go build -trimpath -ldflags "-s -w -buildid=" -o Uninstaller.exe uninstaller/mai
 
 1. **Launch** `Decryptor.exe` on the host machine.
 2. The decryptor opens a premium web dashboard at `http://localhost:58292`.
-3. Enter your **Encryption Password** to reconstruct encrypted logs.
-4. **Analyze & Export**:
+3. **Same machine, no custom password?** The decryptor will auto-detect and unlock immediately.
+4. **Custom password set?** Enter your **Encryption Password** to unlock.
+5. **Different machine?** You must enter the exact custom password from setup (MachineGuid keys are machine-specific).
+6. **Analyze & Export**:
    - Live filtering by window title or keystroke content.
    - Visual artifact correlation for screenshot events.
    - Rotated log file support — automatically reads `.bak` archives.

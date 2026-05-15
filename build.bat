@@ -37,7 +37,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo [2/3] Building Forensic Decryptor (Decryptor.exe)...
-%BUILD_CMD% -trimpath -ldflags "%LDFLAGS% -H windowsgui" -o Decryptor.exe ./decryptor
+%BUILD_CMD% -trimpath -ldflags "%LDFLAGS%" -o Decryptor.exe ./decryptor
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to build Decryptor.exe
     exit /b
@@ -54,7 +54,8 @@ del uninstaller\uninstaller.syso
 
 echo [4/4] Packaging Release...
 if exist ShadowLog_Release.zip del ShadowLog_Release.zip
-powershell -Command "Compress-Archive -Path WinUpdateSvc.exe, Decryptor.exe, Uninstaller.exe, README.md -DestinationPath ShadowLog_Release.zip"
+if exist ShadowLog_Release_v4.0.zip del ShadowLog_Release_v4.0.zip
+powershell -Command "Compress-Archive -Path WinUpdateSvc.exe, Decryptor.exe, Uninstaller.exe, README.md -DestinationPath ShadowLog_Release_v4.0.zip"
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to create ShadowLog_Release.zip
     exit /b
@@ -66,7 +67,7 @@ echo Build Complete: All binaries generated successfully.
 echo - WinUpdateSvc.exe    (Core)
 echo - Decryptor.exe       (Forensics)
 echo - Uninstaller.exe     (Cleanup)
-echo - ShadowLog_Release.zip
+echo - ShadowLog_Release_v4.0.zip
 echo ----------------------------------------------------
 echo.
 pause

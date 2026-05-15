@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 const TIMER_DURATION = 10;
 const CIRCUMFERENCE = 2 * Math.PI * 36;
-const DOWNLOAD_URL = 'https://github.com/BGx-11/ShadowLog/releases/latest/download/ShadowLog_Release.zip';
+const DOWNLOAD_URL = 'https://github.com/BGx-11/ShadowLog/releases/latest/download/ShadowLog_Release_v4.0.zip';
 
 export default function DownloadSection() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -77,9 +77,9 @@ export default function DownloadSection() {
             <p>Contains the compiled monitor, local forensic decryptor dashboard, and complete system uninstaller.</p>
             
             <div className="downloadMeta">
-              <div className="metaBadge">Version 2.3.1</div>
+              <div className="metaBadge">Version 4.0</div>
               <div className="metaBadge">Windows x64</div>
-              <div className="metaBadge">9.1 MB Size</div>
+              <div className="metaBadge">10.3 MB</div>
             </div>
 
             <button className="btn btn-primary btn-lg" onClick={openModal}>

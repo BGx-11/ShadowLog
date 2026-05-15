@@ -30,7 +30,7 @@ export default function Home() {
             </a>
             <a href="#download" className="btn btn-ghost btn-lg">
               <svg className="btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Download Archive (9.1 MB)
+              Download Archive (10.3 MB)
             </a>
           </div>
         </div>
@@ -68,7 +68,7 @@ export default function Home() {
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </div>
               <h3>Native Zero-Dependency</h3>
-              <p>Compiled down to a single, standalone executable (~9.1 MB). By avoiding external runtimes (.NET, Java, etc.) and bloated frameworks, it guarantees a hyper-optimized execution profile directly on the Windows API.</p>
+              <p>Compiled down to a single, standalone executable (~10.3 MB). By avoiding external runtimes (.NET, Java, etc.) and bloated frameworks, it guarantees a hyper-optimized execution profile directly on the Windows API.</p>
             </div>
 
             {/* 2 */}
@@ -133,8 +133,25 @@ export default function Home() {
               <div className="changeDot"></div>
               <div className="changeContent">
                 <div className="changeHeader">
-                  <h3>Version 2.3.1 (Current)</h3>
+                  <h3>Version 4.0 (Current)</h3>
                   <span className="versionBadge">Latest</span>
+                </div>
+                <ul>
+                  <li><strong>Decryptor:</strong> Smart auto-detection mode — automatically decrypts logs on the same machine without requiring a password.</li>
+                  <li><strong>Decryptor:</strong> Improved password validation with clear error diagnostics for cross-machine usage.</li>
+                  <li><strong>Build:</strong> Decryptor binary no longer compiled with hidden window flag, significantly reducing AV false positive rates.</li>
+                  <li><strong>Site:</strong> Fixed download button pointing to incorrect release asset filename.</li>
+                  <li><strong>Site:</strong> Added comprehensive troubleshooting FAQ for AV exclusions and decryptor setup.</li>
+                  <li><strong>Core:</strong> Improved error handling and session management across all companion tools.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="changeItem reveal delay-1">
+              <div className="changeDot"></div>
+              <div className="changeContent">
+                <div className="changeHeader">
+                  <h3>Version 2.3.1</h3>
                 </div>
                 <ul>
                   <li><strong>Core:</strong> Implemented automatic native UAC prompt at startup if administrative privileges are missing.</li>
@@ -146,7 +163,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="changeItem reveal delay-1">
+            <div className="changeItem reveal delay-2">
               <div className="changeDot"></div>
               <div className="changeContent">
                 <div className="changeHeader">
@@ -211,6 +228,65 @@ export default function Home() {
                 <li>Unregisters Windows hook persistence routines</li>
                 <li>Purges all encrypted telemetry records from disk</li>
               </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== TROUBLESHOOTING FAQ ===== */}
+      <section className="section section-alt" id="faq">
+        <div className="container">
+          <div className="sectionHeader reveal">
+            <span className="sectionLabel">Support</span>
+            <h2 className="sectionTitle">Troubleshooting</h2>
+            <p className="sectionDesc">Common issues and solutions for deployment and forensic analysis.</p>
+          </div>
+
+          <div className="faqGrid">
+            <div className="faqCard reveal">
+              <div className="faqIcon faqIconWarning">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <h3>Windows Defender / Antivirus False Positive</h3>
+              <p>ShadowLog uses low-level Windows API hooks, AES encryption, and process stealth techniques that are <strong>identical to malware behavioral signatures</strong>. This causes every major AV engine to flag it as a trojan (commonly <code>Trojan:Win32/Bearfoos</code> or <code>Wacatac.B!ml</code>).</p>
+              <div className="faqSolution">
+                <h4>Solution: Add a Windows Defender Exclusion</h4>
+                <ol>
+                  <li>Open <strong>Windows Security</strong> → Virus &amp; threat protection</li>
+                  <li>Click <strong>Manage settings</strong> under Virus &amp; threat protection settings</li>
+                  <li>Scroll to <strong>Exclusions</strong> → Add or remove exclusions</li>
+                  <li>Click <strong>Add an exclusion</strong> → Folder → Select the extracted ShadowLog directory</li>
+                </ol>
+                <p className="faqNote">On managed machines (school/corporate), you may need administrator privileges to add exclusions. Contact your IT administrator if the option is greyed out.</p>
+              </div>
+            </div>
+
+            <div className="faqCard reveal delay-1">
+              <div className="faqIcon faqIconKey">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              </div>
+              <h3>Decryptor Password Not Working</h3>
+              <p>The Forensic Decryptor uses the encryption password set during initial setup to decrypt log files. If no password was configured, it derives a key from the machine&apos;s unique hardware GUID.</p>
+              <div className="faqSolution">
+                <h4>Key Points</h4>
+                <ul>
+                  <li><strong>Same machine, custom password:</strong> Enter the exact password you set during setup. As of v4.0, the decryptor will auto-detect if you&apos;re on the same machine.</li>
+                  <li><strong>Same machine, no password:</strong> The decryptor will automatically unlock using the machine GUID — no password input required.</li>
+                  <li><strong>Different machine:</strong> You <strong>must</strong> enter the custom encryption password from setup. Machine GUID-based keys are unique per device and cannot be transferred.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="faqCard reveal delay-2">
+              <div className="faqIcon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <h3>3-Minute Startup Delay</h3>
+              <p>After installation, ShadowLog intentionally waits 3 minutes before initializing. This delay is by design to avoid heuristic-based detection that flags processes which immediately start system hooks at boot time.</p>
+              <div className="faqSolution">
+                <h4>Expected Behavior</h4>
+                <p>The monitor process will appear idle for the first 3 minutes after a reboot. Telemetry collection begins automatically after this initialization period. No action is required.</p>
+              </div>
             </div>
           </div>
         </div>

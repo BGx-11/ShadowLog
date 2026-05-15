@@ -24,6 +24,7 @@ import (
 var (
 	lastHeartbeat = time.Now()
 	heartbeatMu   sync.Mutex
+	autoUnlocked  bool
 )
 
 type LogEntry struct {
@@ -33,13 +34,19 @@ type LogEntry struct {
 }
 
 func main() {
-	// ShadowLog Decryptor: Automatically finds and decrypts the hidden local log file.
-	// This version uses a web-based UI for a premium, non-terminal experience.
+	// ShadowLog Decryptor v4.0: Smart auto-detection + manual password fallback.
+	// Automatically finds and decrypts the hidden local log file.
 
 	logPath := config.GetStoragePath()
-	
-	// CRITICAL FIX: We must call LoadConfig so it reads the AES password from the log header.
-	config.LoadConfig()
+
+	// SMART AUTO-DETECT: Try to decrypt config using MachineGuid first.
+	// This works when the user didn't set a custom password and is on the same machine.
+	if _, err := config.LoadConfig(); err == nil {
+		autoUnlocked = true
+		fmt.Println("[+] Auto-detection successful: MachineGuid-based decryption verified.")
+	} else {
+		fmt.Println("[*] Auto-detection failed (custom password required or different machine).")
+	}
 
 	// Start local server for the UI.
 	mux := http.NewServeMux()
@@ -69,37 +76,77 @@ func main() {
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		pwd := r.URL.Query().Get("pwd")
+		autoMode := r.URL.Query().Get("auto")
 		errorMsg := ""
 
-		if pwd != "" {
-			config.SetEncryptionPassword(pwd)
-			_, err := config.LoadConfig()
-			if err != nil {
-				errorMsg = "Invalid decryption password. Please try again."
-				pwd = "" // Reset to show lock screen
-			}
-		}
-
-		// If no valid password was accepted/provided, show the Lock screen.
-		if pwd == "" {
-			tmpl := template.Must(template.New("lock").Parse(lockHtmlContent))
+		// AUTO-UNLOCK PATH: MachineGuid-based (same machine, no custom password).
+		if autoUnlocked && pwd == "" {
+			entries := loadLogs(logPath)
+			tmpl := template.Must(template.New("decryptor").Funcs(template.FuncMap{
+				"split": func(s, sep string) []string {
+					return strings.Split(s, sep)
+				},
+			}).Parse(htmlContent))
 			tmpl.Execute(w, map[string]interface{}{
-				"Error": errorMsg,
+				"Entries": entries,
+				"Count":   len(entries),
+				"Path":    logPath,
+				"AutoMode": true,
 			})
 			return
 		}
 
+		// MANUAL AUTO-DETECT: User clicked "Try Auto-Detect" on the lock screen.
+		if autoMode == "1" {
+			config.SetEncryptionPassword("")
+			if _, err := config.LoadConfig(); err == nil {
+				autoUnlocked = true
+				http.Redirect(w, r, "/", http.StatusFound)
+				return
+			}
+			errorMsg = "Auto-detection failed. This machine's GUID does not match the encryption key. Please enter your custom password."
+		}
+
+		// PASSWORD PATH: User entered a password.
+		if pwd != "" {
+			config.SetEncryptionPassword(pwd)
+			_, err := config.LoadConfig()
+			if err != nil {
+				errorMsg = "Decryption failed. The password does not match the key used during setup. Ensure you are entering the exact encryption password configured during initial deployment."
+				pwd = ""
+			}
+		}
+
+		// If no valid password accepted, show Lock screen.
+		if pwd == "" {
+			// Check if the data file even exists.
+			fileExists := true
+			if _, err := os.Stat(logPath); os.IsNotExist(err) {
+				fileExists = false
+				errorMsg = "No telemetry data file found at the expected path. Ensure ShadowLog has been deployed and has generated logs on this machine."
+			}
+
+			tmpl := template.Must(template.New("lock").Parse(lockHtmlContent))
+			tmpl.Execute(w, map[string]interface{}{
+				"Error":      errorMsg,
+				"FileExists": fileExists,
+				"LogPath":    logPath,
+			})
+			return
+		}
+
+		// Password accepted — render the main dashboard.
 		entries := loadLogs(logPath)
 		tmpl := template.Must(template.New("decryptor").Funcs(template.FuncMap{
 			"split": func(s, sep string) []string {
-				parts := strings.Split(s, sep)
-				return parts
+				return strings.Split(s, sep)
 			},
 		}).Parse(htmlContent))
 		tmpl.Execute(w, map[string]interface{}{
-			"Entries": entries,
-			"Count":   len(entries),
-			"Path":    logPath,
+			"Entries":  entries,
+			"Count":    len(entries),
+			"Path":     logPath,
+			"Password": pwd,
 		})
 	})
 
@@ -132,7 +179,7 @@ func main() {
 		json.NewEncoder(w).Encode(entries)
 	})
 
-	fmt.Printf("Starting Shadow Log Decryptor UI at http://localhost:58292\n")
+	fmt.Printf("Starting ShadowLog Decryptor v4.0 at http://localhost:58292\n")
 	
 	go func() {
 		time.Sleep(1 * time.Second)
@@ -262,7 +309,7 @@ const lockHtmlContent = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Locked | Shadow Log</title>
+    <title>Locked | ShadowLog Decryptor v4.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -270,6 +317,8 @@ const lockHtmlContent = `
             --bg: #050505;
             --card-bg: rgba(20, 20, 20, 0.4);
             --card-border: rgba(255, 255, 255, 0.1);
+            --success: #22c55e;
+            --warning: #f59e0b;
         }
         body {
             font-family: 'Inter', sans-serif;
@@ -294,10 +343,10 @@ const lockHtmlContent = `
             background: var(--card-bg);
             backdrop-filter: blur(40px);
             border: 1px solid var(--card-border);
-            padding: 64px 48px;
+            padding: 56px 44px;
             border-radius: 32px;
             width: 100%;
-            max-width: 440px;
+            max-width: 460px;
             text-align: center;
             box-shadow: 0 40px 80px -20px rgba(0,0,0,0.5);
             animation: float 6s ease-in-out infinite;
@@ -311,21 +360,42 @@ const lockHtmlContent = `
             background: rgba(0, 120, 212, 0.1);
             border: 1px solid var(--card-border);
             border-radius: 20px;
-            margin: 0 auto 32px;
+            margin: 0 auto 24px;
             display: flex;
             justify-content: center;
             align-items: center;
             color: var(--primary);
         }
+        .version-badge {
+            display: inline-block;
+            background: rgba(0, 120, 212, 0.15);
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            letter-spacing: 0.05em;
+        }
         h1 { font-size: 1.75rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.04em; }
-        p { color: rgba(255,255,255,0.5); font-size: 0.9375rem; margin-bottom: 32px; font-weight: 500; }
-        .input-group { position: relative; margin-bottom: 16px; }
+        .subtitle { color: rgba(255,255,255,0.5); font-size: 0.9375rem; margin-bottom: 28px; font-weight: 500; line-height: 1.5; }
+        .status-bar {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            margin-bottom: 28px; padding: 10px 16px;
+            background: rgba(255,255,255,0.03); border: 1px solid var(--card-border);
+            border-radius: 12px; font-size: 0.8125rem;
+        }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .status-dot.green { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .status-dot.red { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+        .status-text { color: rgba(255,255,255,0.6); font-family: 'Inter', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .input-group { position: relative; margin-bottom: 12px; }
         input {
             width: 100%;
             background: rgba(255,255,255,0.05);
             border: 1px solid var(--card-border);
             border-radius: 16px;
-            padding: 18px 24px;
+            padding: 18px 48px 18px 24px;
             color: white;
             font-size: 1rem;
             outline: none;
@@ -333,6 +403,12 @@ const lockHtmlContent = `
             box-sizing: border-box;
         }
         input:focus { border-color: var(--primary); background: rgba(255,255,255,0.08); box-shadow: 0 0 0 4px rgba(0, 120, 212, 0.1); }
+        .toggle-pwd {
+            position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer;
+            padding: 4px; display: flex; transition: color 0.2s;
+        }
+        .toggle-pwd:hover { color: rgba(255,255,255,0.8); }
         .btn-unlock {
             width: 100%;
             background: var(--primary);
@@ -344,10 +420,34 @@ const lockHtmlContent = `
             font-size: 1rem;
             cursor: pointer;
             transition: all 0.3s;
-            margin-top: 8px;
+            margin-top: 4px;
         }
         .btn-unlock:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 10px 20px -5px rgba(0, 120, 212, 0.4); }
-        .error { color: #ff4d4d; font-size: 0.8125rem; margin-top: 12px; font-weight: 600; }
+        .divider {
+            display: flex; align-items: center; gap: 16px;
+            margin: 20px 0; color: rgba(255,255,255,0.25); font-size: 0.8125rem; font-weight: 600;
+        }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--card-border); }
+        .btn-auto {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.7);
+            border: 1px solid var(--card-border);
+            padding: 16px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 0.9375rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-auto:hover { background: rgba(255,255,255,0.1); border-color: var(--primary); color: white; transform: translateY(-1px); }
+        .error {
+            background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #fca5a5; font-size: 0.8125rem; margin-top: 16px; font-weight: 500;
+            padding: 12px 16px; border-radius: 12px; line-height: 1.5; text-align: left;
+        }
+        .hint { color: rgba(255,255,255,0.3); font-size: 0.75rem; margin-top: 16px; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -356,13 +456,37 @@ const lockHtmlContent = `
         <div class="icon-box">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
         </div>
+        <div class="version-badge">DECRYPTOR v4.0</div>
         <h1>Decrypt Evidence</h1>
-        <p>ShadowLog forensics module is active. Enter your encryption password to proceed.</p>
+        <p class="subtitle">Enter the encryption password configured during ShadowLog deployment.</p>
+
+        <div class="status-bar">
+            {{ if .FileExists }}
+            <span class="status-dot green"></span>
+            <span class="status-text">Data file found: {{ .LogPath }}</span>
+            {{ else }}
+            <span class="status-dot red"></span>
+            <span class="status-text">No data file at expected path</span>
+            {{ end }}
+        </div>
+
         <div class="input-group">
             <input type="password" id="pwdInput" placeholder="Encryption Password" onkeyup="if(event.key==='Enter') unlock()">
+            <button class="toggle-pwd" onclick="togglePwd()" title="Show/hide password">
+                <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
         </div>
         <button class="btn-unlock" onclick="unlock()">Unlock Session</button>
+
+        <div class="divider">or</div>
+
+        <button class="btn-auto" onclick="window.location.href='/?auto=1'">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+            Auto-Detect (Same Machine)
+        </button>
+
         {{ if .Error }}<div class="error">{{ .Error }}</div>{{ end }}
+        <div class="hint">If no custom password was set during setup, use Auto-Detect on the same machine. For cross-machine decryption, the original encryption password is required.</div>
     </div>
     <script>
         function unlock() {
@@ -370,6 +494,10 @@ const lockHtmlContent = `
             if (pwd) {
                 window.location.href = '/?pwd=' + encodeURIComponent(pwd);
             }
+        }
+        function togglePwd() {
+            const inp = document.getElementById('pwdInput');
+            inp.type = inp.type === 'password' ? 'text' : 'password';
         }
     </script>
 </body>
@@ -382,7 +510,7 @@ const htmlContent = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shadow Log Decryptor</title>
+    <title>ShadowLog Decryptor v4.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -443,6 +571,7 @@ const htmlContent = `
         }
 
         h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.04em; margin-bottom: 2px; }
+        .v-badge { display: inline-block; background: rgba(0, 120, 212, 0.15); color: var(--primary); padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; margin-left: 8px; letter-spacing: 0.05em; vertical-align: middle; }
         .stats { font-size: 0.8125rem; color: var(--text-dim); display: flex; align-items: center; gap: 12px; font-weight: 500; }
         .path-pill { background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--primary); border: 1px solid rgba(0, 120, 212, 0.1); }
 
@@ -637,7 +766,7 @@ const htmlContent = `
                     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6-8 10-8 10z"></path></svg>
                 </div>
                 <div>
-                    <h1>Shadow Log Decryptor</h1>
+                    <h1>ShadowLog Decryptor<span class="v-badge">v4.0</span></h1>
                     <div class="stats">
                         <span class="active-dot"></span>
                         {{ .Count }} Forensic Sessions

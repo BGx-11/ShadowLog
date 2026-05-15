@@ -167,7 +167,7 @@ func (l *Logger) Start() {
 	// 1. Initial Pulse: Verify writing to the unified storage file.
 	if l.Config.LogLocal {
 		ts := time.Now().Format("2006-01-02 15:04:05")
-		l.report(fmt.Sprintf("[%s] [System] Monitor Started (v2.3)", ts))
+		l.report(fmt.Sprintf("[%s] [System] Monitor Started (v4.0)", ts))
 	}
 
 	// Ticker for periodic flushing (every 15 seconds).

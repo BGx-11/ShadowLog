@@ -59,11 +59,11 @@ func (ks *killSwitch) start(pauseChan chan<- bool) {
 	}
 
 	// Initial delay to avoid immediate network activity on startup.
-	time.Sleep(3 * time.Minute)
+	time.Sleep(30 * time.Second)
 
 	for {
 		ks.poll(pauseChan)
-		time.Sleep(5 * time.Minute)
+		time.Sleep(30 * time.Second)
 	}
 }
 

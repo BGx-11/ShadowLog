@@ -145,9 +145,9 @@ const jsonLd = {
     ]
   },
   programmingLanguage: 'Go',
-  downloadUrl: 'https://github.com/BGx-11/ShadowLog/releases/latest/download/ShadowLog_Release.zip',
-  softwareVersion: 'v2.3',
-  fileSize: '1MB',
+  downloadUrl: 'https://github.com/BGx-11/ShadowLog/releases/latest/download/ShadowLog_Release_v4.0.zip',
+  softwareVersion: 'v4.0',
+  fileSize: '10.3MB',
   featureList: [
     'Zero dependencies',
     'AES-256-GCM encryption',
