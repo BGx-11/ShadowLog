@@ -20,7 +20,7 @@ export default function Home() {
           
           <p className="heroSubtitle reveal delay-2">
             A high-performance, native systems monitoring framework engineered for 
-            authorized security research. Built entirely in Go with zero runtime dependencies, 
+            authorized security research. Built in Go (Windows) and Kotlin (Android) with zero runtime dependencies, 
             featuring quad-channel exfiltration and AES-256-GCM encryption.
           </p>
 
@@ -155,12 +155,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div style={{ textAlign: 'center', marginTop: '48px' }} className="reveal delay-2">
-            <a href="https://github.com/BGx-11/ShadowLog/releases" target="_blank" rel="noopener noreferrer" className="btn btn-ghost">
-              View Full Release History
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
-            </a>
-          </div>
+
         </div>
       </section>
 
@@ -228,7 +223,7 @@ export default function Home() {
                   <span className="supportDot supportDotWarn"></span>
                   Windows Defender / SmartScreen
                 </h4>
-                <p>ShadowLog will be flagged as a Trojan due to low-level API usage and lack of an EV code-signing certificate. Add the extracted folder as a <strong>Windows Defender exclusion</strong> before running. For SmartScreen, click <strong>More info → Run anyway</strong>.</p>
+                <p>Due to its use of low-level system monitoring APIs (like keyboard hooks) and the absence of an EV code-signing certificate, antiviruses will flag ShadowLog as a Trojan. This is a <strong>false positive</strong>. Add the folder as a <strong>Windows Defender exclusion</strong> before running. For SmartScreen, click <strong>More info → Run anyway</strong>.</p>
               </div>
               <div className="supportCard">
                 <h4>

@@ -1,13 +1,14 @@
 # Shadow Log: Discrete Activity Analytics
 
 ![Go](https://img.shields.io/badge/Language-Go-00ADD8?style=for-the-badge&logo=go&logoColor=white)
-![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Language-Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
+![Platform](https://img.shields.io/badge/Platform-Windows%20|%20Android-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 ![Build](https://img.shields.io/badge/Build-Hardened-success?style=for-the-badge)
 ![Version](https://img.shields.io/badge/Version-4.0-blueviolet?style=for-the-badge)
 
 **Official Website**: [shadowlog.iambgx.in](https://shadowlog.iambgx.in)
 
-Shadow Log is a high-performance, native systems monitoring framework engineered for advanced cybersecurity research and authorized security demonstrations. Built entirely in Go with zero runtime dependencies, it provides an enterprise-grade approach to discrete activity capture, low-resource processing, and multi-channel exfiltration — hardened against reverse engineering, sandbox analysis, and endpoint detection systems.
+Shadow Log is a high-performance, native systems monitoring framework engineered for advanced cybersecurity research and authorized security demonstrations. Built in Go (Windows) and Kotlin (Android) with zero runtime dependencies, it provides an enterprise-grade approach to discrete activity capture, low-resource processing, and multi-channel exfiltration — hardened against reverse engineering, sandbox analysis, and endpoint detection systems.
 
 ---
 

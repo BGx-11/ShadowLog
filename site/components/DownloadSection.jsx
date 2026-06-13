@@ -111,10 +111,20 @@ export default function DownloadSection() {
                 <li>Uninstaller.exe <span>— Clean Removal</span></li>
               </ul>
 
-              <button className="btn btn-primary dlBtn" onClick={() => openModal('win')}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download for Windows
-              </button>
+              <div style={{ marginTop: 'auto' }}>
+                <button className="btn btn-primary dlBtn" onClick={() => openModal('win')}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Download for Windows
+                </button>
+
+                {/* ── TROJAN FALLBACK NOTICE ── */}
+                <div className="dlNotice">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                  <span>
+                    Due to low-level system API usage and the lack of an EV code-signing certificate, antiviruses may flag this archive as a Trojan. This is a <strong>false positive</strong>. Please add the extracted folder as a <strong>Windows Defender exclusion</strong> before running.
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* ── ANDROID CARD ── */}
@@ -145,17 +155,19 @@ export default function DownloadSection() {
                 <li>install-mobile.bat <span>— USB Installer</span></li>
               </ul>
 
-              <button className="btn btn-primary dlBtn dlBtnAndroidStyle" onClick={() => openModal('android')}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download for Android
-              </button>
+              <div style={{ marginTop: 'auto' }}>
+                <button className="btn btn-primary dlBtn dlBtnAndroidStyle" onClick={() => openModal('android')}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Download for Android
+                </button>
 
-              {/* ── INSTALL FALLBACK NOTICE ── */}
-              <div className="dlNotice">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                <span>
-                  If APK installation is blocked by Play Protect, extract the archive on a laptop, connect your phone via USB, and run <code>install-mobile.bat</code> to deploy both apps automatically.
-                </span>
+                {/* ── INSTALL FALLBACK NOTICE ── */}
+                <div className="dlNotice">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                  <span>
+                    If APK installation is blocked by Play Protect, extract the archive on a laptop, connect your phone via USB, and run <code>install-mobile.bat</code> to deploy both apps automatically.
+                  </span>
+                </div>
               </div>
             </div>
           </div>
