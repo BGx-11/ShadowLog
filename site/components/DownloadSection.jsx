@@ -102,60 +102,25 @@ export default function DownloadSection() {
               <div className="metaBadge">~2.1 MB each</div>
             </div>
 
-            {/* ── INLINE PLAY PROTECT BYPASS GUIDE ── */}
-            <div className="installGuide">
-              <div className="installGuideHeader">
-                <div className="installGuideIcon">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                </div>
-                <div>
-                  <h3>⚠️ Required: Disable Play Protect First</h3>
-                  <p>Play Protect <strong>will block installation</strong>. Complete these steps before downloading.</p>
-                </div>
+            {/* ── INSTALLATION NOTICE ── */}
+            <div style={{
+              background: 'rgba(255, 171, 0, 0.05)',
+              border: '1px solid rgba(255, 171, 0, 0.2)',
+              borderRadius: '12px',
+              padding: '20px',
+              marginBottom: '32px',
+              display: 'flex',
+              gap: '16px',
+              alignItems: 'flex-start'
+            }}>
+              <div style={{ color: '#ffab00', marginTop: '2px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               </div>
-
-              <div className="installSteps">
-                <div className="installStep">
-                  <div className="installStepNum">1</div>
-                  <div className="installStepText">
-                    Open the <strong>Google Play Store</strong> app
-                  </div>
-                </div>
-                <div className="installStep">
-                  <div className="installStepNum">2</div>
-                  <div className="installStepText">
-                    Tap your <strong>profile icon</strong> (top-right) → tap <strong>Play Protect</strong>
-                  </div>
-                </div>
-                <div className="installStep">
-                  <div className="installStepNum">3</div>
-                  <div className="installStepText">
-                    Tap the <strong>⚙ Settings gear</strong> (top-right corner)
-                  </div>
-                </div>
-                <div className="installStep">
-                  <div className="installStepNum">4</div>
-                  <div className="installStepText">
-                    Toggle <strong>OFF</strong> &quot;Scan apps with Play Protect&quot; → confirm <strong>&quot;Turn off&quot;</strong>
-                  </div>
-                </div>
-                <div className="installStep">
-                  <div className="installStepNum">5</div>
-                  <div className="installStepText">
-                    Download &amp; install the APK below — it will go through now
-                  </div>
-                </div>
-                <div className="installStep">
-                  <div className="installStepNum">6</div>
-                  <div className="installStepText">
-                    <strong>Re-enable Play Protect</strong> after installing (same path, toggle back ON)
-                  </div>
-                </div>
-              </div>
-
-              <div className="installTip">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                <span><strong>Still blocked?</strong> Go to <strong>Settings → Apps → Google Play Store → Force Stop</strong>, then retry. On Samsung/Xiaomi, also check <strong>Settings → Security → Install Unknown Apps</strong> and allow your browser.</span>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', margin: '0 0 8px 0', color: '#ffab00', fontWeight: 600 }}>Installation Notice</h3>
+                <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                  Android security policies may block direct APK downloads. If your installation fails, please download the <strong>Android Release Archive</strong> to a laptop, connect your device via USB, and run the included <code style={{ background: 'var(--bg-surface)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.85em' }}>install-mobile.bat</code> script to automatically deploy the apps.
+                </p>
               </div>
             </div>
 
