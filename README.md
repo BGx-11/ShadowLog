@@ -14,7 +14,7 @@ Shadow Log is a high-performance, native systems monitoring framework engineered
 > [!CAUTION]
 > ### Legal and Ethical Warning
 > **FOR AUTHORIZED EDUCATIONAL AND RESEARCH USE ONLY.**
-> Unauthorized deployment of monitoring tools on systems you do not own or have explicit, documented permission to monitor is illegal and a violation of privacy laws (such as the Computer Fraud and Abuse Act). This software is provided "as-is" for security professionals and students to study low-level system hooks and secure exfiltration techniques. The developer assumes no liability for misuse, data loss, or legal consequences resulting from the use of this tool. By using this software, you agree to our official [Terms of Service](https://shadowlog.iambgx.in/terms) and [Privacy Policy](https://shadowlog.iambgx.in/privacy).
+> Unauthorized deployment of monitoring tools on systems or mobile devices you do not own or have explicit, documented permission to monitor is illegal and a violation of privacy laws (such as the Computer Fraud and Abuse Act). This includes both Windows PCs and Android devices. Covertly installing mobile tracking applications or intercepting notifications and communications on devices you do not legally own constitutes a severe criminal offense. This software is provided "as-is" for security professionals and students to study system hooks and secure exfiltration techniques. The developer assumes no liability for misuse, data loss, or legal consequences resulting from the use of this tool. By using this software, you agree to our official [Terms of Service](https://shadowlog.iambgx.in/terms) and [Privacy Policy](https://shadowlog.iambgx.in/privacy).
 
 ---
 

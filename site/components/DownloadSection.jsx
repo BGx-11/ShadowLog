@@ -12,12 +12,14 @@ export default function DownloadSection() {
   const [timerValue, setTimerValue] = useState(TIMER_DURATION);
   const [timerDone, setTimerDone] = useState(false);
   const [checks, setChecks] = useState([false, false]);
+  const [platform, setPlatform] = useState('win');
   const intervalRef = useRef(null);
 
   const allChecked = checks.every(Boolean);
   const ready = timerDone && allChecked;
 
-  const openModal = useCallback(() => {
+  const openModal = useCallback((selectedPlatform) => {
+    setPlatform(selectedPlatform);
     setModalOpen(true);
     setTimerValue(TIMER_DURATION);
     setTimerDone(false);
@@ -56,7 +58,9 @@ export default function DownloadSection() {
 
   const handleDownload = () => {
     if (!ready) return;
-    window.location.href = WIN_DOWNLOAD_URL;
+    window.location.href = platform === 'win' 
+        ? WIN_DOWNLOAD_URL 
+        : 'https://github.com/BGx-11/ShadowLog/releases/latest/download/ShadowLog_Android_v4.0.zip';
     setTimeout(closeModal, 2000);
   };
 
@@ -107,7 +111,7 @@ export default function DownloadSection() {
                 <li>Uninstaller.exe <span>— Clean Removal</span></li>
               </ul>
 
-              <button className="btn btn-primary dlBtn" onClick={openModal}>
+              <button className="btn btn-primary dlBtn" onClick={() => openModal('win')}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Download for Windows
               </button>
@@ -141,10 +145,10 @@ export default function DownloadSection() {
                 <li>install-mobile.bat <span>— USB Installer</span></li>
               </ul>
 
-              <a href="https://github.com/BGx-11/ShadowLog/releases/latest/download/ShadowLog_Android_v4.0.zip" className="btn btn-primary dlBtn" download>
+              <button className="btn btn-primary dlBtn dlBtnAndroidStyle" onClick={() => openModal('android')}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Download for Android
-              </a>
+              </button>
 
               {/* ── INSTALL FALLBACK NOTICE ── */}
               <div className="dlNotice">
@@ -160,12 +164,12 @@ export default function DownloadSection() {
 
       {/* ── SECURITY ACKNOWLEDGMENT MODAL ── */}
       <div className={`modalOverlay ${modalOpen ? 'modalOverlayActive' : ''}`} onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}>
-        <div className="modal">
-          <div className="modalIcon">
+        <div className={`modal ${platform === 'android' ? 'modalAndroid' : 'modalWin'}`}>
+          <div className={`modalIcon ${platform === 'android' ? 'modalIconAndroid' : 'modalIconWin'}`}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           </div>
-          <h2>Security Acknowledgment</h2>
-          <p>This is a powerful systems monitoring framework. Unauthorized surveillance is a serious criminal offense under the CFAA and international privacy laws.</p>
+          <h2>{platform === 'android' ? 'Mobile Security Acknowledgment' : 'Security Acknowledgment'}</h2>
+          <p>This is a powerful {platform === 'android' ? 'mobile' : 'systems'} monitoring framework. Unauthorized surveillance is a serious criminal offense under the CFAA and international privacy laws.</p>
 
           <label className="checkboxItem">
             <input type="checkbox" checked={checks[0]} onChange={() => toggleCheck(0)} />
@@ -177,17 +181,17 @@ export default function DownloadSection() {
           </label>
 
           <div className="timerRingContainer">
-            <div className="timerRing">
+            <div className={`timerRing ${platform === 'android' ? 'timerRingAndroid' : 'timerRingWin'}`}>
               <svg viewBox="0 0 80 80">
                 <circle className="timerRingBg" cx="40" cy="40" r="36"/>
-                <circle className="timerRingProgress" cx="40" cy="40" r="36" style={{ strokeDasharray: CIRCUMFERENCE, strokeDashoffset: dashOffset }}/>
+                <circle className={`timerRingProgress ${platform === 'android' ? 'timerRingProgressAndroid' : 'timerRingProgressWin'}`} cx="40" cy="40" r="36" style={{ strokeDasharray: CIRCUMFERENCE, strokeDashoffset: dashOffset }}/>
               </svg>
               <div className="timerText">{timerDone ? '✓' : timerValue}</div>
             </div>
           </div>
 
-          <button className="btn btn-primary downloadFinalBtn" disabled={!ready} onClick={handleDownload}>
-            {ready ? 'Download Now' : 'Awaiting Acknowledgment...'}
+          <button className={`btn btn-primary downloadFinalBtn ${platform === 'android' ? 'downloadFinalBtnAndroid' : 'downloadFinalBtnWin'}`} disabled={!ready} onClick={handleDownload}>
+            {ready ? `Download for ${platform === 'android' ? 'Android' : 'Windows'}` : 'Awaiting Acknowledgment...'}
           </button>
         </div>
       </div>

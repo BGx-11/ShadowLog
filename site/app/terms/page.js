@@ -56,8 +56,8 @@ export default function TermsPage() {
           <h2>4. Strictly Prohibited Use</h2>
           <p>You expressly agree <strong>never</strong> to use ShadowLog for any of the following purposes:</p>
           <ul>
-            <li>Monitoring, surveilling, intercepting, recording, or capturing any activity on any system, device, network, or account that you do not own or for which you lack explicit, documented, written authorization from the legal owner</li>
-            <li>Stalking, harassment, intimidation, domestic surveillance, or any form of unauthorized surveillance of any individual</li>
+            <li>Monitoring, surveilling, intercepting, recording, or capturing any activity on any system, mobile device, network, or account that you do not own or for which you lack explicit, documented, written authorization from the legal owner</li>
+            <li>Stalking, harassment, intimidation, domestic surveillance, or any form of unauthorized surveillance of any individual via their PC or Android device</li>
             <li>Corporate espionage, theft of trade secrets, intellectual property theft, unauthorized competitive intelligence gathering, or any unauthorized data collection</li>
             <li>Identity theft, credential harvesting, financial fraud, or any form of unauthorized access to accounts or systems</li>
             <li>Distribution of the Software bundled with malware, ransomware, trojans, rootkits, or other malicious payloads</li>
@@ -111,8 +111,8 @@ export default function TermsPage() {
             possessing, and using the Software. You understand that:
           </p>
           <ul>
-            <li>The Software is a powerful systems monitoring tool that can capture sensitive data</li>
-            <li>Misuse of the Software may result in severe civil and criminal liability</li>
+            <li>The Software is a powerful systems and mobile monitoring tool that can capture sensitive data, including keystrokes, notifications, and location data on Android</li>
+            <li>Misuse of the Software may result in severe civil and criminal liability under both computer crime and wiretapping laws</li>
             <li>You are solely and exclusively responsible for ensuring that your use complies with all applicable laws</li>
             <li>The Developer has no control over and assumes no responsibility for how the Software is deployed or used after download</li>
           </ul>

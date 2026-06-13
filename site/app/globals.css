@@ -145,7 +145,7 @@ code {
 }
 .navLogo { display: flex; align-items: center; gap: 12px; font-family: var(--font-heading); font-weight: 800; font-size: 1.25rem; color: var(--text-primary); }
 .navLogoIcon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid var(--glass-stroke); box-shadow: var(--shadow-sm); font-size: 0.9rem; letter-spacing: -0.05em; }
-.navLinks { display: flex; gap: 40px; list-style: none; }
+.navLinks { display: flex; gap: 28px; list-style: none; }
 .navLinks a { color: var(--text-secondary); font-size: 0.95rem; font-weight: 500; }
 .navLinks a:hover { color: var(--text-primary); }
 .navActions { display: flex; gap: 16px; }
@@ -698,6 +698,42 @@ code {
 .timerText { position: absolute; font-size: 1.25rem; font-weight: 800; font-family: var(--font-mono); color: var(--text-primary); }
 .downloadFinalBtn { width: 100%; margin-top: 16px; justify-content: center; padding: 14px; }
 .downloadFinalBtn:disabled { opacity: 0.5; cursor: not-allowed; background: var(--text-muted); box-shadow: none; transform: none; }
+
+/* --- Modal Platform Variants --- */
+.modalAndroid { border-top: 4px solid #3DDC84; }
+.modalWin { border-top: 4px solid #2563eb; }
+
+.modalIconAndroid { background: #ecfdf5; color: #059669; border-color: rgba(61, 220, 132, 0.2); }
+.modalIconWin { background: #eff6ff; color: #2563eb; border-color: rgba(37, 99, 235, 0.15); }
+
+.timerRingProgressAndroid { stroke: #3DDC84; }
+.timerRingProgressWin { stroke: #2563eb; }
+
+.timerTextAndroid { color: #059669; }
+.timerTextWin { color: #2563eb; }
+
+.downloadFinalBtnAndroid {
+  background: linear-gradient(135deg, #3DDC84, #059669);
+  box-shadow: 0 10px 20px -5px rgba(61, 220, 132, 0.3);
+}
+.downloadFinalBtnAndroid:hover:not(:disabled) {
+  box-shadow: 0 15px 25px -5px rgba(61, 220, 132, 0.4);
+}
+.downloadFinalBtnWin {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.3);
+}
+.downloadFinalBtnWin:hover:not(:disabled) {
+  box-shadow: 0 15px 25px -5px rgba(37, 99, 235, 0.4);
+}
+.dlBtnAndroidStyle {
+  background: linear-gradient(135deg, #3DDC84, #059669);
+  box-shadow: 0 10px 20px -5px rgba(61, 220, 132, 0.3);
+}
+.dlBtnAndroidStyle:hover {
+  background-position: right center;
+  box-shadow: 0 15px 25px -5px rgba(61, 220, 132, 0.4);
+}
 
 /* --- FAQ / Troubleshooting Section --- */
 .faqGrid { display: grid; grid-template-columns: repeat(1, 1fr); gap: 32px; max-width: 900px; margin: 0 auto; }

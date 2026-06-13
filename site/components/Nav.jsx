@@ -35,10 +35,10 @@ export default function Nav({ alwaysOpaque = false }) {
 
         <ul className={`navLinks ${menuOpen ? 'menuActive' : ''}`}>
           <li><a href="/#features" onClick={closeMenu}>Features</a></li>
+          <li><a href="/#download" onClick={closeMenu}>Download</a></li>
           <li><a href="/#changelog" onClick={closeMenu}>Changelog</a></li>
           <li><a href="/#setup" onClick={closeMenu}>Documentation</a></li>
-          <li><a href="/#faq" onClick={closeMenu}>FAQ</a></li>
-          <li><a href="/#download" onClick={closeMenu}>Download</a></li>
+          <li><a href="/#tools" onClick={closeMenu}>FAQ</a></li>
         </ul>
 
         <div className="navActions">
