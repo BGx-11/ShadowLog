@@ -37,7 +37,7 @@ export default function Footer() {
 
         <div className="footerBottom">
           <p className="footerCopy">
-            &copy; {new Date().getFullYear()} <a href="https://iambgx.in" target="_blank" rel="noopener noreferrer">BGx Cybersecurity</a>. All rights reserved.
+            &copy; {new Date().getFullYear()} <a href="https://iambgx.in" target="_blank" rel="noopener noreferrer">BGx</a>. All rights reserved.
           </p>
           <div className="footerLegal">
             <a href="https://github.com/BGx-11/ShadowLog/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">License</a>
