@@ -10,6 +10,34 @@
 
 Shadow Log is a high-performance, native systems monitoring framework engineered for advanced cybersecurity research and authorized security demonstrations. Built in Go (Windows) and Kotlin (Android) with zero runtime dependencies, it provides an enterprise-grade approach to discrete activity capture, low-resource processing, and multi-channel exfiltration — hardened against reverse engineering, sandbox analysis, and endpoint detection systems.
 
+### 🏗️ Architecture Overview
+
+```mermaid
+graph TD
+    A[Target Machine] -->|Native Execution| B(WinUpdateSvc.exe)
+    B -->|Anti-Analysis Checks| C{Core Monitor}
+    
+    subgraph Data Capture
+        C -->|Keylogs & Clipboard| D[Text Data]
+        C -->|Smart Burst| E[Screenshots]
+        C -->|SSID & Passwords| F[Wi-Fi Data]
+        C -->|Volume Info| G[USB Events]
+    end
+    
+    subgraph Exfiltration Channels
+        C -->|Webhooks| H(Discord)
+        C -->|Bot API / C2| I(Telegram)
+        C -->|SMTP| J(Email)
+        C -->|Fallback| K(DNS-over-HTTPS)
+    end
+    
+    subgraph Local Forensics
+        C -->|AES-256-GCM| L[Encrypted Local Cache]
+        M(Decryptor.exe) -.->|Auto-Detect / Password| L
+        M -->|Localhost:58292| N[Web Dashboard]
+    end
+```
+
 ---
 
 > [!CAUTION]
@@ -85,6 +113,25 @@ Shadow Log employs a defense-in-depth approach to remain undetectable:
 ---
 
 ## 🚀 Setup & Deployment Guide
+
+### Deployment Workflow
+
+```mermaid
+graph TD
+    A[Download Release] --> B[Extract Archive]
+    B --> C[Run Core Executable]
+    C --> D{Setup Wizard}
+    D -->|Required| E[Set Encryption Password]
+    D -->|Optional| F[Configure Webhooks]
+    D -->|Optional| G[Configure Telegram C2]
+    D -->|Optional| H[Configure SMTP]
+    E --> I[Initialize Monitor]
+    F --> I
+    G --> I
+    H --> I
+    I -->|60-180s Random Delay| J[Background Monitoring Active]
+```
+
 
 ### Option 1: Quick Start (Security Analysts)
 
@@ -167,6 +214,18 @@ go build -trimpath -ldflags "-s -w -buildid=" -o Uninstaller.exe uninstaller/mai
 ---
 
 ## 🔍 Forensic Reconstruction
+
+```mermaid
+graph TD
+    A[Launch Decryptor.exe] --> B{Same Machine?}
+    B -->|Yes| C[Auto-Detect & Unlock]
+    B -->|No| D[Enter Setup Password]
+    D --> E[Unlock Backup Data]
+    C --> E
+    E --> F[Open Web Dashboard localhost:58292]
+    F --> G[Analyze & Export Telemetry]
+```
+
 
 1. **Launch** `Decryptor.exe` on the host machine.
 2. The decryptor opens a premium web dashboard at `http://localhost:58292`.
