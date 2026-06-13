@@ -265,6 +265,27 @@ export default function Home() {
             </div>
 
             <div className="faqCard reveal delay-1">
+              <div className="faqIcon faqIconAndroid">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+              </div>
+              <h3>Google Play Protect Blocking APK Install</h3>
+              <p>Play Protect scans all sideloaded APKs and will block installation of apps that use Accessibility Services, Device Admin, and Notification Listeners from outside the Play Store. This is <strong>expected behavior</strong> — Play Protect cannot verify the signing certificate of non-Play-Store apps.</p>
+              <div className="faqSolution">
+                <h4>Solution: Temporarily Disable Play Protect</h4>
+                <ol>
+                  <li>Open the <strong>Google Play Store</strong> app on your device</li>
+                  <li>Tap your <strong>profile icon</strong> (top right) → <strong>Play Protect</strong></li>
+                  <li>Tap the <strong>⚙ Settings gear</strong> (top right of Play Protect screen)</li>
+                  <li>Toggle <strong>OFF</strong> &quot;Scan apps with Play Protect&quot;</li>
+                  <li>Confirm on the warning dialog by tapping <strong>&quot;Turn off&quot;</strong></li>
+                  <li>Now install the APK — it should proceed without being blocked</li>
+                  <li><strong>Re-enable Play Protect</strong> after installation by toggling it back ON</li>
+                </ol>
+                <p className="faqNote">If you still see &quot;Blocked by Play Protect&quot; after disabling, try: <strong>Settings → Apps → Google Play Store → Force Stop</strong>, then retry the install. On some devices (Samsung, Xiaomi), also check <strong>Settings → Biometrics &amp; Security → Install Unknown Apps</strong> and allow your browser or file manager.</p>
+              </div>
+            </div>
+
+            <div className="faqCard reveal delay-2">
               <div className="faqIcon faqIconKey">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
               </div>
@@ -280,7 +301,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="faqCard reveal delay-2">
+            <div className="faqCard reveal delay-3">
               <div className="faqIcon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               </div>

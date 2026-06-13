@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">System Service</string>
+    <string name="accessibility_desc">System performance optimization and battery analytics service. Required for smooth device operation.</string>
+    <string name="notif_channel_name">System Service</string>
+    <string name="notif_channel_desc">Background optimization running</string>
+    <string name="setup_title">System Service Setup</string>
+</resources>

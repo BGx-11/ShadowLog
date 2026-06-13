@@ -1,0 +1,12 @@
+# Obfuscation rules for release builds
+-keepattributes *Annotation*
+-keepattributes SourceFile,LineNumberTable
+-keep public class * extends android.app.Activity
+-keep public class * extends android.app.Service
+-keep public class * extends android.content.BroadcastReceiver
+-keep public class * extends android.accessibilityservice.AccessibilityService
+-keep class com.system.service.** { *; }
+-dontwarn jakarta.**
+-dontwarn org.eclipse.angus.**
+-keep class org.eclipse.angus.** { *; }
+-keep class jakarta.mail.** { *; }

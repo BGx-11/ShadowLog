@@ -31,7 +31,6 @@ export default function Footer() {
             <ul role="list">
               <li><a href="https://iambgx.in" target="_blank" rel="noopener noreferrer">Devansh Agarwal</a></li>
               <li><a href="https://github.com/BGx-11" target="_blank" rel="noopener noreferrer">GitHub Profile</a></li>
-              <li><a href="https://www.linkedin.com/in/devansha25/" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
             </ul>
           </div>
         </div>
@@ -41,6 +40,7 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} <a href="https://iambgx.in" target="_blank" rel="noopener noreferrer">BGx Cybersecurity</a>. All rights reserved.
           </p>
           <div className="footerLegal">
+            <a href="https://github.com/BGx-11/ShadowLog/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">License</a>
             <Link href="/terms">Terms of Service</Link>
             <Link href="/privacy">Privacy Policy</Link>
           </div>

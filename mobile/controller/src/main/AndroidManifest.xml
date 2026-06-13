@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Visibility for Monitor App's ContentProvider -->
+    <queries>
+        <provider android:authorities="com.system.service.provider" />
+    </queries>
+
+    <!-- Permission to access Monitor app's ContentProvider -->
+    <uses-permission android:name="com.system.service.PROVIDER_ACCESS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <application
+        android:name=".ControllerApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Controller">
+
+        <!-- ── PIN Lock (launcher entry) ── -->
+        <activity
+            android:name=".PinActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Controller"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- ── Status Dashboard (after PIN) ── -->
+        <activity
+            android:name=".StatusActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Controller"
+            android:launchMode="singleTask" />
+
+        <!-- ── Decryptor Activity ── -->
+        <activity
+            android:name=".DecryptorActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Controller"
+            android:launchMode="singleTask" />
+
+        <!-- ── Uninstaller Activity ── -->
+        <activity
+            android:name=".UninstallerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Controller"
+            android:launchMode="singleTask" />
+
+    </application>
+
+</manifest>

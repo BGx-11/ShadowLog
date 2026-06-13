@@ -409,6 +409,7 @@ code {
 }
 .faqIconWarning { color: #f59e0b; background: #fffbeb; border-color: rgba(245, 158, 11, 0.2); }
 .faqIconKey { color: var(--accent-secondary); background: #eef2ff; border-color: rgba(99, 102, 241, 0.15); }
+.faqIconAndroid { color: #3DDC84; background: #ecfdf5; border-color: rgba(61, 220, 132, 0.2); }
 .faqCard h3 { font-size: 1.3rem; margin-bottom: 16px; font-weight: 700; }
 .faqCard > p { font-size: 1.05rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; }
 .faqCard code { font-size: 0.8em; background: #fef2f2; color: #dc2626; border-color: rgba(220, 38, 38, 0.1); }
@@ -433,4 +434,104 @@ code {
 .faqSolution ul li::before { content: '→'; position: absolute; left: 0; color: var(--accent-primary); font-weight: 600; }
 .faqNote { margin-top: 16px; padding: 12px 16px; background: #fffbeb; border: 1px solid rgba(245, 158, 11, 0.2); border-radius: var(--radius-md); font-size: 0.95rem; color: #92400e; line-height: 1.5; }
 .faqSolution p { color: var(--text-secondary); font-size: 1rem; line-height: 1.6; }
+
+/* --- Mobile Download Section --- */
+.downloadAreaMobile { margin-top: 40px; text-align: center; }
+.downloadPlatformBadge {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 8px 20px; background: #ecfdf5; border: 1px solid rgba(61, 220, 132, 0.25);
+  border-radius: var(--radius-full); font-size: 0.9rem; font-weight: 700;
+  color: #059669; margin-bottom: 28px; letter-spacing: 0.02em;
+}
+.downloadPlatformBadge svg { color: #3DDC84; }
+
+/* Install Guide (inline Play Protect bypass) */
+.installGuide {
+  background: linear-gradient(135deg, #fefce8, #fff7ed);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-lg); padding: 28px; margin-bottom: 32px;
+  text-align: left;
+}
+.installGuideHeader {
+  display: flex; align-items: flex-start; gap: 16px; margin-bottom: 24px;
+}
+.installGuideIcon {
+  width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px;
+  background: rgba(245, 158, 11, 0.15); color: #d97706;
+  display: flex; align-items: center; justify-content: center;
+}
+.installGuideHeader h3 {
+  font-size: 1.1rem; font-weight: 800; color: #92400e; margin-bottom: 4px;
+}
+.installGuideHeader p {
+  font-size: 0.95rem; color: #a16207; line-height: 1.5; margin: 0;
+}
+
+.installSteps { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.installStep {
+  display: flex; align-items: center; gap: 14px; padding: 10px 14px;
+  background: rgba(255,255,255,0.7); border-radius: var(--radius-md);
+  border: 1px solid rgba(245, 158, 11, 0.1);
+  transition: var(--transition-fast);
+}
+.installStep:hover { background: rgba(255,255,255,0.95); border-color: rgba(245, 158, 11, 0.25); }
+.installStepNum {
+  width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff; font-size: 0.8rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);
+}
+.installStepText {
+  font-size: 0.95rem; color: #78350f; line-height: 1.4;
+}
+.installStepText strong { color: #451a03; }
+
+.installTip {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 16px; background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(245, 158, 11, 0.15); border-radius: var(--radius-md);
+  font-size: 0.9rem; color: #92400e; line-height: 1.5;
+}
+.installTip svg { flex-shrink: 0; color: #d97706; margin-top: 2px; }
+.installTip strong { color: #78350f; }
+
+/* APK Download Cards */
+.apkDownloadGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 8px; }
+.apkCard {
+  display: flex; align-items: center; gap: 14px; padding: 20px;
+  background: #fff; border: 1px solid var(--glass-stroke);
+  border-radius: var(--radius-lg); text-decoration: none;
+  transition: all 0.3s ease; cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+.apkCard:hover {
+  border-color: rgba(61, 220, 132, 0.4);
+  box-shadow: 0 8px 24px -4px rgba(61, 220, 132, 0.2);
+  transform: translateY(-3px);
+}
+.apkCardIcon {
+  width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px;
+  background: #ecfdf5; border: 1px solid rgba(61, 220, 132, 0.2);
+  display: flex; align-items: center; justify-content: center; color: #059669;
+  transition: var(--transition-fast);
+}
+.apkCard:hover .apkCardIcon {
+  background: linear-gradient(135deg, #3DDC84, #059669);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 4px 12px rgba(61, 220, 132, 0.35);
+}
+.apkCardContent { flex: 1; text-align: left; }
+.apkCardContent strong { display: block; font-size: 1rem; color: var(--text-primary); margin-bottom: 2px; }
+.apkCardContent span { font-size: 0.85rem; color: var(--text-muted); }
+.apkCardArrow {
+  flex-shrink: 0; color: var(--text-muted);
+  transition: var(--transition-fast);
+}
+.apkCard:hover .apkCardArrow { color: #059669; transform: translateY(2px); }
+
+@media (max-width: 768px) {
+  .apkDownloadGrid { grid-template-columns: 1fr; }
+  .installGuideHeader { flex-direction: column; gap: 12px; }
+}
 
