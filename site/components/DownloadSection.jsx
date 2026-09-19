@@ -72,9 +72,26 @@ export default function DownloadSection() {
       <section className="section" id="download">
         <div className="container">
           <div className="sectionHeader reveal">
-            <span className="sectionLabel">Release</span>
+            <span className="sectionLabel">Release (Archived)</span>
             <h2 className="sectionTitle">Download ShadowLog</h2>
             <p className="sectionDesc">Choose your platform. All archives include documentation and companion utilities.</p>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 16px',
+              borderRadius: 'var(--radius-full)',
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#991b1b',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              marginTop: '12px',
+              marginBottom: '8px'
+            }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#dc2626' }}></span>
+              <span><strong>Archived Releases:</strong> Project is discontinued. Downloads remain available for security research and historical analysis.</span>
+            </div>
             <p className="dlPreNote reveal">
               Before downloading, please review the <a href="#setup">Getting Started</a> guide, <a href="#tools">Tools &amp; Support</a>, <Link href="/terms">Terms of Service</Link>, and <Link href="/privacy">Privacy Policy</Link>.
             </p>

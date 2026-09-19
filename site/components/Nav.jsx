@@ -31,6 +31,18 @@ export default function Nav({ alwaysOpaque = false }) {
             <Image src="/logo.png" alt="ShadowLog" width={20} height={20} priority />
           </div>
           <span>ShadowLog</span>
+          <span style={{
+            fontSize: '0.68rem',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            padding: '2px 8px',
+            borderRadius: 'var(--radius-full)',
+            background: 'rgba(239, 68, 68, 0.1)',
+            color: '#dc2626',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            marginLeft: '4px'
+          }}>Discontinued</span>
         </Link>
 
         <ul className={`navLinks ${menuOpen ? 'menuActive' : ''}`}>

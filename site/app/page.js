@@ -14,6 +14,26 @@ export default function Home() {
       <section className="hero" id="hero">
         <div className="heroBackground"></div>
         <div className="heroContent">
+          <div className="reveal" style={{ marginBottom: '20px' }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 16px',
+              borderRadius: 'var(--radius-full)',
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              color: '#dc2626',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase'
+            }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }}></span>
+              Project Discontinued
+            </span>
+          </div>
+
           <h1 className="heroTitle reveal delay-1">
             <span className="highlight">ShadowLog</span>
           </h1>
@@ -33,6 +53,18 @@ export default function Home() {
               Download Archive
             </a>
           </div>
+        </div>
+      </section>
+
+      {/* ===== DISCONTINUATION BANNER ===== */}
+      <section className="discontinuedBanner" role="alert" style={{ background: '#fff5f5', borderTop: '1px solid #fee2e2', borderBottom: '1px solid #fee2e2', padding: '18px 0' }}>
+        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', maxWidth: '900px', margin: '0 auto', textAlign: 'center', flexWrap: 'wrap' }}>
+          <div style={{ flexShrink: 0, width: '20px', height: '20px', color: '#dc2626', display: 'flex', alignItems: 'center' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <p style={{ fontSize: '0.95rem', color: '#991b1b', lineHeight: 1.5, margin: 0, fontWeight: 500 }}>
+            <strong>Project Status: Discontinued.</strong> ShadowLog is no longer maintained or supported. This site and its downloads are preserved strictly as an educational and research archive.
+          </p>
         </div>
       </section>
 

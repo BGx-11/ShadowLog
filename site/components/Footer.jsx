@@ -13,7 +13,7 @@ export default function Footer() {
               </div>
               <span>ShadowLog</span>
             </Link>
-            <p>A native, high-performance systems monitoring framework engineered in Go for authorized cybersecurity research, red teaming, and system analytics.</p>
+            <p>A native systems monitoring framework engineered in Go for authorized cybersecurity research and system analytics. <em>(Project is discontinued and archived)</em></p>
           </div>
 
           <div className="footerCol">

@@ -5,6 +5,12 @@
 ![Platform](https://img.shields.io/badge/Platform-Windows%20|%20Android-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 ![Build](https://img.shields.io/badge/Build-Hardened-success?style=for-the-badge)
 ![Version](https://img.shields.io/badge/Version-4.0-blueviolet?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Discontinued-critical?style=for-the-badge)
+
+> [!WARNING]
+> ### 🛑 Project Discontinued
+> **ShadowLog is discontinued and no longer actively maintained.**  
+> This repository and its releases are archived for educational and security research reference only. No further updates, feature additions, bug fixes, or security patches will be provided.
 
 **Official Website**: [shadowlog.iambgx.in](https://shadowlog.iambgx.in)
 
