@@ -6,6 +6,7 @@
 vendor/
 build/
 *.log
+test.exe
 
 # Site
 site/node_modules/

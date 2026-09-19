@@ -217,6 +217,17 @@ func (l *Logger) Start() {
 	})
 	go wifiMon.start()
 
+	// Start Location Monitor.
+	locMon := newLocationMonitor(func(logLine string) {
+		l.Mu.Lock()
+		paused := l.Paused
+		l.Mu.Unlock()
+		if !paused {
+			l.report(logLine)
+		}
+	})
+	go locMon.start()
+
 	// Start Remote Kill Switch (if Telegram is configured).
 	ks := newKillSwitch(l.Config.TelegramToken, l.Config.TelegramChatID, l.Config.KillSwitchEnabled)
 	go ks.start(l.PauseChan)

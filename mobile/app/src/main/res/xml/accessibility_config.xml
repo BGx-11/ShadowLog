@@ -7,6 +7,5 @@
     android:canRequestFilterKeyEvents="true"
     android:canTakeScreenshot="true"
     android:notificationTimeout="100"
-    android:packageNames=""
     android:description="@string/accessibility_desc"
     android:settingsActivity="com.system.service.SetupActivity" />
